@@ -27,25 +27,25 @@ create policy "tracks: public read"
   on public.tracks for select
   using (true);
 
--- 누구나 등록할 수 있다.
---   주의: anon key 는 사이트에 공개되므로, 이 정책이 켜져 있으면 링크를 아는
---   누구나 트랙을 추가할 수 있습니다. 혼자 쓰는 사이트라면 아래 정책을 지우고
---   README 의 "등록을 나만 할 수 있게" 절차를 따르세요.
+-- 등록·수정·삭제는 로그인한 회원만.
 drop policy if exists "tracks: public insert" on public.tracks;
-create policy "tracks: public insert"
-  on public.tracks for insert
+drop policy if exists "tracks: public update" on public.tracks;
+drop policy if exists "tracks: public delete" on public.tracks;
+
+drop policy if exists "tracks: authed insert" on public.tracks;
+create policy "tracks: authed insert"
+  on public.tracks for insert to authenticated
   with check (true);
 
--- 상세 화면의 수정·삭제. insert 와 같은 수준으로 열어 둔다.
-drop policy if exists "tracks: public update" on public.tracks;
-create policy "tracks: public update"
-  on public.tracks for update
+drop policy if exists "tracks: authed update" on public.tracks;
+create policy "tracks: authed update"
+  on public.tracks for update to authenticated
   using (true)
   with check (true);
 
-drop policy if exists "tracks: public delete" on public.tracks;
-create policy "tracks: public delete"
-  on public.tracks for delete
+drop policy if exists "tracks: authed delete" on public.tracks;
+create policy "tracks: authed delete"
+  on public.tracks for delete to authenticated
   using (true);
 
 -- ---------------------------------------------------------------------------
@@ -62,11 +62,67 @@ create policy "covers: public read"
   on storage.objects for select
   using (bucket_id = 'covers');
 
--- 누구나 올릴 수 있다. tracks 의 insert 정책과 같은 수준으로 맞춘다.
---   등록을 제한하려면 아래 정책의 대상을 authenticated 로 바꾸세요.
+-- 올리는 건 로그인한 회원만. tracks 의 insert 정책과 수준을 맞춘다.
 drop policy if exists "covers: public upload" on storage.objects;
-create policy "covers: public upload"
-  on storage.objects for insert
+drop policy if exists "covers: authed upload" on storage.objects;
+create policy "covers: authed upload"
+  on storage.objects for insert to authenticated
   with check (bucket_id = 'covers');
 
 -- 덮어쓰기/삭제는 허용하지 않는다(정책 없음 = 거부).
+
+-- ---------------------------------------------------------------------------
+-- 회원 (profiles)
+--
+-- 로그인은 Supabase Auth 를 쓰고, 아이디는 도메인 없이 받는다.
+-- Auth 가 이메일을 요구하므로 내부적으로 <아이디>@ummjjutube.local 로 저장한다.
+-- 닉네임·역할은 이 테이블에 둔다. 계정 생성은 Edge Function(admin-create-user)
+-- 만 하므로 insert/update/delete 정책은 두지 않는다(service_role 은 RLS 를 지나친다).
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.profiles (
+  id         uuid primary key references auth.users (id) on delete cascade,
+  username   text        not null unique check (username ~ '^[a-z0-9_.-]{3,30}$'),
+  nickname   text        not null check (length(btrim(nickname)) > 0),
+  role       text        not null default 'member' check (role in ('admin', 'member')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+-- 정책 안에서 profiles 를 다시 읽으면 재귀가 되므로 security definer 함수로 뺀다.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
+
+-- 본인 것은 본인이, 전체는 관리자가 본다.
+drop policy if exists "profiles: self or admin read" on public.profiles;
+create policy "profiles: self or admin read"
+  on public.profiles for select to authenticated
+  using (id = auth.uid() or public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- 첫 관리자 만들기 (한 번만)
+--
+-- 1) 대시보드 Authentication > Users > Add user 로 만듭니다.
+--      Email: admin@ummjjutube.local   (아이디가 admin 이 됩니다)
+--      Password: 쓰실 비밀번호
+--      Auto Confirm User 를 체크하세요.
+-- 2) 아래 주석을 풀어 실행해 프로필을 붙입니다.
+--
+-- insert into public.profiles (id, username, nickname, role)
+-- select id, 'admin', '관리자', 'admin'
+--   from auth.users
+--  where email = 'admin@ummjjutube.local'
+-- on conflict (id) do nothing;

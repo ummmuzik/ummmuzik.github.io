@@ -11,6 +11,11 @@ GitHub Pages 로 호스팅하고, 데이터는 Supabase(Postgres) 에 저장합�
 | `#/track/<id>` | 상세. 큰 커버, 제목, 아티스트, 재생 바와 버튼. 좌측 상단은 뒤로, 우측 상단 ⋮ 메뉴에서 수정·삭제. |
 | `#/edit/<id>` | 수정. 등록과 같은 폼에 기존 값이 채워집니다. |
 | `#/add` | 등록. url / title / artist / image 를 입력해 저장합니다. |
+| `#/login` | 로그인. 이미 로그인했으면 계정과 로그아웃이 보입니다. |
+| `#/admin` | 관리자. 계정을 만들고 회원 목록을 봅니다. |
+
+목록·재생은 누구나, **등록·수정·삭제는 로그인한 회원만** 할 수 있습니다.
+목록 좌측 상단의 자물쇠로 로그인 화면(관리자는 관리자 화면)에 들어갑니다.
 
 **문서는 `index.html` 하나입니다.** 화면마다 `.html` 파일을 두면 이동할 때마다 브라우저가
 문서를 새로 읽으면서 재생기 iframe 이 파괴돼 음악이 끊깁니다. 그래서 주소만 나누고
@@ -97,32 +102,63 @@ python3 -m http.server 8000   # http://localhost:8000
 브라우저 정책상 **첫 재생은 반드시 사용자 클릭으로 시작**해야 합니다(자동 재생 불가).
 또한 일부 영상은 소유자가 외부 재생을 막아 두었을 수 있고, 그 경우 플레이어에 안내가 표시됩니다.
 
-## 5. 등록을 나만 할 수 있게 (선택)
+## 5. 로그인과 회원
 
-기본 스키마는 누구나 등록·수정·삭제할 수 있습니다. 공개 사이트라면 다음 중 하나를 쓰세요.
+소셜 로그인은 쓰지 않고 **관리자가 계정을 만들어 주는 방식**입니다.
+아이디는 도메인 없이 받지만 Supabase Auth 가 이메일을 요구하므로 내부적으로
+`<아이디>@ummjjutube.local` 로 바꿔 저장합니다. 사용자는 아이디만 입력합니다.
+
+회원 한 명은 `아이디` / `비밀번호` / `닉네임` / `역할(관리자·일반)` 로 이뤄지고,
+닉네임과 역할은 `profiles` 테이블에 둡니다.
+
+### 왜 Edge Function 인가
+
+계정을 만들려면 Supabase 의 관리자 키(`service_role`)가 필요한데, 이 사이트는
+정적 파일이라 키를 두면 누구나 소스에서 꺼내 DB 전체를 조작할 수 있습니다.
+그래서 키는 서버에서 도는 Edge Function 안에만 두고, 함수가 **호출자가 관리자인지
+먼저 확인한 뒤** 계정을 만듭니다.
+
+### 5-1. 첫 관리자 만들기 (한 번만)
+
+함수는 관리자만 부를 수 있으므로 첫 관리자는 손으로 만듭니다.
+
+1. 대시보드 **Authentication → Users → Add user**
+   - Email `admin@ummjjutube.local` (아이디가 `admin` 이 됩니다)
+   - Password: 쓰실 비밀번호
+   - **Auto Confirm User** 체크
+2. SQL Editor 에서 `supabase/schema.sql` 맨 아래 주석의 `insert into public.profiles …`
+   구문을 풀어 실행합니다.
+
+### 5-2. Edge Function 배포
+
+```bash
+npm i -g supabase          # 이미 있으면 생략
+supabase login
+supabase link --project-ref goyfjwndvdkgnodnssye
+supabase functions deploy admin-create-user
+```
+
+`SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` 는 Supabase 가
+함수에 자동으로 넣어 주므로 따로 설정할 것이 없습니다. 함수 안의 `ALLOWED_ORIGINS`
+에 사이트 주소가 들어 있어야 브라우저가 호출할 수 있습니다(기본값에
+`https://ummmuzik.github.io` 와 로컬 주소가 들어 있습니다).
+
+### 5-3. 계정 만들기
+
+관리자로 로그인하면 목록 좌측 자물쇠가 관리자 화면으로 이어집니다. 거기서
+아이디·비밀번호·닉네임·역할을 넣어 계정을 만들고 회원 목록을 볼 수 있습니다.
+
+비밀번호 변경·회원 삭제 화면은 아직 없습니다. 필요하면 대시보드의
+Authentication → Users 에서 처리하세요(이때 `profiles` 행도 같이 지워야 합니다).
+
+## 6. 권한 더 좁히기 (선택)
+
+현재 스키마는 **로그인한 회원이면 누구나** 곡을 등록·수정·삭제할 수 있습니다.
+올린 사람만 고치게 하려면 `tracks` 에 `owner uuid default auth.uid()` 열을 두고
+update·delete 정책을 `owner = auth.uid() or public.is_admin()` 으로 바꾸세요.
 
 곡 삭제는 `tracks` 행만 지웁니다. Storage 에 올린 커버 사진은 남으므로, 정리가
 필요하면 Supabase 대시보드의 Storage > `covers` 에서 지우세요.
-
-**A. 로그인한 사용자만 등록**
-
-```sql
-drop policy "tracks: public insert" on public.tracks;
-create policy "tracks: authed insert"
-  on public.tracks for insert to authenticated
-  with check (true);
-
-drop policy "covers: public upload" on storage.objects;
-create policy "covers: authed upload"
-  on storage.objects for insert to authenticated
-  with check (bucket_id = 'covers');
-```
-
-그다음 Supabase Auth(이메일 매직링크 등)로 로그인 화면을 등록 페이지 앞에 붙입니다.
-
-**B. 본인 계정만 등록**
-
-위 정책에 `auth.uid()` 를 쓰는 `owner` 열을 추가해 제한합니다.
 
 ## 파일 구조
 
@@ -132,11 +168,14 @@ add.html                #/add 로 보내는 리다이렉트 (예전 링크용)
 assets/css/app.css      스타일
 assets/js/config.js     Supabase 접속 정보 (여기를 채우세요)
 assets/js/sources.js    유튜브/사운드클라우드 링크 파싱
-assets/js/db.js         Supabase 조회·저장·사진 업로드
+assets/js/db.js         Supabase 조회·저장·사진 업로드·회원
+assets/js/auth.js       로그인 상태 (아이디 ↔ 이메일 변환)
 assets/js/player.js     재생 엔진 (유튜브 + 사운드클라우드, 화면과 분리)
-assets/js/app.js        라우터 + 목록·상세 화면 + 하단 플레이어
-assets/js/add.js        등록 화면
-supabase/schema.sql     테이블 + RLS 정책 + covers 스토리지 버킷
+assets/js/app.js        라우터 + 목록·상세·로그인·관리자 화면 + 하단 플레이어
+assets/js/add.js        등록·수정 화면
+supabase/schema.sql     테이블 + RLS 정책 + covers 버킷 + profiles
+supabase/functions/admin-create-user/
+                        관리자만 호출하는 계정 생성 Edge Function
 ```
 
 정적 파일은 `?v=` 쿼리로 캐시를 끊습니다. css·js 를 고치면 `index.html` 의 숫자를 올리세요.

@@ -82,7 +82,41 @@
     return bucket.getPublicUrl(name).data.publicUrl;
   }
 
+  /* ---------- 회원 ---------- */
+
+  /** 회원 목록. RLS 상 관리자만 전체를 볼 수 있다. */
+  async function listProfiles() {
+    var res = await getClient()
+      .from('profiles')
+      .select('id, username, nickname, role, created_at')
+      .order('created_at', { ascending: true });
+    if (res.error) throw res.error;
+    return res.data || [];
+  }
+
+  /**
+   * 계정 생성. 관리자 키는 사이트에 둘 수 없으므로 Supabase Edge Function 에
+   * 맡긴다. 함수가 호출자의 토큰으로 관리자인지 확인한 뒤 계정을 만든다.
+   */
+  async function createAccount(payload) {
+    var res = await getClient().functions.invoke('admin-create-user', { body: payload });
+    if (res.error) {
+      var msg = res.error.message || '계정을 만들지 못했습니다.';
+      // 함수가 본문에 담아 보낸 이유를 꺼내 본다
+      try {
+        var body = res.error.context && (await res.error.context.json());
+        if (body && body.error) msg = body.error;
+      } catch (e) { /* 본문이 없을 수도 있다 */ }
+      throw new Error(msg);
+    }
+    if (res.data && res.data.error) throw new Error(res.data.error);
+    return res.data;
+  }
+
   window.DB = {
+    client: getClient,
+    listProfiles: listProfiles,
+    createAccount: createAccount,
     isConfigured: isConfigured,
     listTracks: listTracks,
     addTrack: addTrack,

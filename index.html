@@ -6,7 +6,7 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%A7%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="./assets/css/app.css?v=9">
+<link rel="stylesheet" href="./assets/css/app.css?v=10">
 </head>
 <body data-route="list">
 
@@ -143,12 +143,78 @@
   </form>
 </template>
 
+<template id="tpl-login">
+  <section class="auth">
+    <div id="notice" class="notice" hidden></div>
+
+    <div id="signed-out">
+      <form id="login-form" class="form">
+        <div class="field">
+          <label for="l-id">id</label>
+          <input id="l-id" class="input" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        </div>
+        <div class="field">
+          <label for="l-pw">password</label>
+          <input id="l-pw" class="input" type="password" autocomplete="current-password" required>
+        </div>
+        <div class="actions">
+          <button id="l-submit" class="btn btn-primary" type="submit">login</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="signed-in" hidden>
+      <p class="auth-who"><strong id="who-nick"></strong><span id="who-id" class="muted-inline"></span></p>
+      <div class="actions">
+        <a id="go-admin" class="btn" href="#/admin" hidden>admin</a>
+        <button id="logout" class="btn" type="button">logout</button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-admin">
+  <div id="notice" class="notice" hidden></div>
+
+  <section class="admin">
+    <h2 class="sec-title">new account</h2>
+    <form id="user-form" class="form">
+      <div class="field">
+        <label for="u-id">id</label>
+        <input id="u-id" class="input" type="text" autocapitalize="off" spellcheck="false" placeholder="영문 소문자·숫자·_.- (3~30자)" required>
+      </div>
+      <div class="field">
+        <label for="u-pw">password</label>
+        <input id="u-pw" class="input" type="text" autocomplete="new-password" placeholder="6자 이상" required>
+      </div>
+      <div class="field">
+        <label for="u-nick">nickname</label>
+        <input id="u-nick" class="input" type="text" maxlength="40" required>
+      </div>
+      <div class="field">
+        <label for="u-role">role</label>
+        <select id="u-role" class="input">
+          <option value="member">일반</option>
+          <option value="admin">관리자</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="u-submit" class="btn btn-primary" type="submit">create</button>
+      </div>
+    </form>
+
+    <h2 class="sec-title">members</h2>
+    <ul id="members" class="members"></ul>
+  </section>
+</template>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=9"></script>
-<script src="./assets/js/sources.js?v=9"></script>
-<script src="./assets/js/db.js?v=9"></script>
-<script src="./assets/js/player.js?v=9"></script>
-<script src="./assets/js/add.js?v=9"></script>
-<script src="./assets/js/app.js?v=9"></script>
+<script src="./assets/js/config.js?v=10"></script>
+<script src="./assets/js/sources.js?v=10"></script>
+<script src="./assets/js/db.js?v=10"></script>
+<script src="./assets/js/auth.js?v=10"></script>
+<script src="./assets/js/player.js?v=10"></script>
+<script src="./assets/js/add.js?v=10"></script>
+<script src="./assets/js/app.js?v=10"></script>
 </body>
 </html>

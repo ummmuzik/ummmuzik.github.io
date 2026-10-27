@@ -15,4 +15,8 @@ window.APP_CONFIG = {
 
   // 커버 이미지를 올릴 Storage 버킷 이름
   BUCKET: 'covers',
+
+  // 아이디를 이메일로 바꿀 때 붙이는 도메인(사용자에게는 보이지 않습니다).
+  // Edge Function 의 EMAIL_DOMAIN 과 같아야 합니다.
+  ID_DOMAIN: 'ummjjutube.local',
 };

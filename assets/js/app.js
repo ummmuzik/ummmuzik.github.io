@@ -205,18 +205,34 @@
       brand.removeAttribute('href');
     }
 
+    var auth = window.Auth.state();
+
     if (r.name === 'list') {
-      var add = el('a', 'icon-btn icon-accent');
-      add.href = '#/add';
-      add.setAttribute('aria-label', '음악 등록');
-      add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
-      topRight.appendChild(add);
+      topLeft.appendChild(lockButton(auth));
+      if (auth.signedIn) {
+        var add = el('a', 'icon-btn icon-accent');
+        add.href = '#/add';
+        add.setAttribute('aria-label', '음악 등록');
+        add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
+        topRight.appendChild(add);
+      }
       return;
     }
 
     topLeft.appendChild(backButton());
 
-    if (r.name === 'track' && track) topRight.appendChild(trackMenu(track));
+    if (r.name === 'track' && track && auth.signedIn) topRight.appendChild(trackMenu(track));
+  }
+
+  /** 목록 좌측 자물쇠. 로그인하면 열린 자물쇠가 되고, 관리자는 관리 화면으로 간다. */
+  function lockButton(auth) {
+    var a = el('a', 'icon-btn');
+    a.href = auth.isAdmin ? '#/admin' : '#/login';
+    a.setAttribute('aria-label', auth.signedIn ? '계정' : '로그인');
+    a.innerHTML = auth.signedIn
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-9.58-2h2.2A3 3 0 0 1 15 7v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-5 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7A5 5 0 0 0 7 7v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM9 7a3 3 0 0 1 6 0v2H9zm3 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
+    return a;
   }
 
   /* ---------- 상세 화면의 수정·삭제 메뉴 ---------- */
@@ -532,6 +548,151 @@
     });
   }
 
+  /* ---------- 로그인 화면 ---------- */
+
+  function renderLogin() {
+    view.appendChild(document.getElementById('tpl-login').content.cloneNode(true));
+
+    var notice = document.getElementById('notice');
+    var out = document.getElementById('signed-out');
+    var inn = document.getElementById('signed-in');
+    var form = document.getElementById('login-form');
+    var id = document.getElementById('l-id');
+    var pw = document.getElementById('l-pw');
+    var submit = document.getElementById('l-submit');
+
+    function fail(msg) {
+      notice.className = 'notice notice-bad';
+      notice.textContent = msg;
+      notice.hidden = false;
+    }
+
+    function paint() {
+      var a = window.Auth.state();
+      out.hidden = a.signedIn;
+      inn.hidden = !a.signedIn;
+      if (a.signedIn) {
+        document.getElementById('who-nick').textContent = a.nickname || a.username || '';
+        document.getElementById('who-id').textContent = a.username ? '@' + a.username : '';
+        document.getElementById('go-admin').hidden = !a.isAdmin;
+      }
+    }
+
+    paint();
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      notice.hidden = true;
+      if (!window.DB.isConfigured()) return fail('Supabase 설정이 필요합니다.');
+      if (!id.value.trim() || !pw.value) return fail('아이디와 비밀번호를 입력해 주세요.');
+
+      submit.disabled = true;
+      submit.textContent = '...';
+      try {
+        await window.Auth.signIn(id.value, pw.value);
+        paint();
+      } catch (err) {
+        fail(err && err.message ? err.message : '로그인하지 못했습니다.');
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'login';
+      }
+    });
+
+    document.getElementById('logout').addEventListener('click', async function () {
+      await window.Auth.signOut();
+      paint();
+    });
+  }
+
+  /* ---------- 관리자 화면 ---------- */
+
+  async function renderAdmin() {
+    var auth = window.Auth.state();
+    if (!auth.signedIn) { location.replace('#/login'); return; }
+
+    if (!auth.isAdmin) {
+      view.appendChild(el('p', 'state', '관리자만 볼 수 있습니다.'));
+      view.classList.add('is-centered');
+      return;
+    }
+
+    view.appendChild(document.getElementById('tpl-admin').content.cloneNode(true));
+
+    var notice = document.getElementById('notice');
+    var form = document.getElementById('user-form');
+    var uId = document.getElementById('u-id');
+    var uPw = document.getElementById('u-pw');
+    var uNick = document.getElementById('u-nick');
+    var uRole = document.getElementById('u-role');
+    var submit = document.getElementById('u-submit');
+    var members = document.getElementById('members');
+
+    function say(kind, msg) {
+      notice.className = 'notice notice-' + kind;
+      notice.textContent = msg;
+      notice.hidden = false;
+    }
+
+    async function loadMembers() {
+      members.textContent = '';
+      var rows;
+      try {
+        rows = await window.DB.listProfiles();
+      } catch (err) {
+        members.appendChild(el('li', 'member muted-row', '회원을 불러오지 못했습니다.'));
+        return;
+      }
+      if (!rows.length) {
+        members.appendChild(el('li', 'member muted-row', '아직 회원이 없습니다.'));
+        return;
+      }
+      rows.forEach(function (m) {
+        var li = el('li', 'member');
+        var who = el('div', 'member-who');
+        who.appendChild(el('span', 'member-nick', m.nickname || ''));
+        who.appendChild(el('span', 'member-id', '@' + m.username));
+        li.appendChild(who);
+        li.appendChild(el('span', 'role-tag' + (m.role === 'admin' ? ' is-admin' : ''),
+          m.role === 'admin' ? '관리자' : '일반'));
+        members.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      notice.hidden = true;
+
+      var username = uId.value.trim().toLowerCase();
+      if (!/^[a-z0-9_.-]{3,30}$/.test(username)) {
+        return say('bad', '아이디는 영문 소문자·숫자·_ . - 조합 3~30자여야 합니다.');
+      }
+      if (uPw.value.length < 6) return say('bad', '비밀번호는 6자 이상이어야 합니다.');
+      if (!uNick.value.trim()) return say('bad', '닉네임을 입력해 주세요.');
+
+      submit.disabled = true;
+      submit.textContent = '...';
+      try {
+        await window.DB.createAccount({
+          username: username,
+          password: uPw.value,
+          nickname: uNick.value.trim(),
+          role: uRole.value,
+        });
+        say('ok', '“' + username + '” 계정을 만들었습니다.');
+        form.reset();
+        await loadMembers();
+      } catch (err) {
+        say('bad', err && err.message ? err.message : '계정을 만들지 못했습니다.');
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'create';
+      }
+    });
+
+    await loadMembers();
+  }
+
   /* ---------- 라우팅 ---------- */
 
   function route() {
@@ -541,6 +702,8 @@
     m = /^\/edit\/(.+)$/.exec(h);
     if (m) return { name: 'edit', id: decodeURIComponent(m[1]) };
     if (h === '/add') return { name: 'add' };
+    if (h === '/login') return { name: 'login' };
+    if (h === '/admin') return { name: 'admin' };
     return { name: 'list' };
   }
 
@@ -562,16 +725,26 @@
 
     var r = route();
     document.body.dataset.route = r.name;
-    view.className = 'wrap' + (r.name === 'add' || r.name === 'edit' ? ' narrow' : '');
+    var narrow =
+      r.name === 'add' || r.name === 'edit' || r.name === 'login' || r.name === 'admin';
+    view.className = 'wrap' + (narrow ? ' narrow' : '');
     view.textContent = '';
     if (r.name !== 'track') document.title = 'ummjjutube';
 
     setHeader(r, null);
     renderBar(window.Player.state());
 
+    // 등록·수정은 로그인한 사람만 (서버 쪽 RLS 로도 막혀 있다)
+    if ((r.name === 'add' || r.name === 'edit') && !window.Auth.state().signedIn) {
+      location.replace('#/login');
+      return;
+    }
+
     if (r.name === 'track') await renderTrack(r.id);
     else if (r.name === 'edit') await renderEdit(r.id);
     else if (r.name === 'add') renderAdd();
+    else if (r.name === 'login') renderLogin();
+    else if (r.name === 'admin') await renderAdmin();
     else await renderList();
 
     watchAnchor();
@@ -592,5 +765,13 @@
     renderBar(s);
     if (s.track) watchAnchor();
   });
-  render();
+
+  (async function boot() {
+    // 로그인 상태를 먼저 읽어야 상단바와 화면 접근 제한을 바로 그릴 수 있다.
+    try {
+      await window.Auth.init();
+    } catch (e) { /* 설정 전이면 로그아웃 상태로 본다 */ }
+    window.Auth.subscribe(function () { render(); });
+    render();
+  })();
 })();
