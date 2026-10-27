@@ -172,6 +172,13 @@ create policy "comments: authed insert"
   on public.comments for insert to authenticated
   with check (author = auth.uid());
 
+-- 수정은 본인만(관리자도 남의 댓글은 못 고친다).
+drop policy if exists "comments: own update" on public.comments;
+create policy "comments: own update"
+  on public.comments for update to authenticated
+  using (author = auth.uid())
+  with check (author = auth.uid());
+
 drop policy if exists "comments: own delete" on public.comments;
 create policy "comments: own delete"
   on public.comments for delete to authenticated

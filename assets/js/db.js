@@ -124,6 +124,29 @@
     return rows;
   }
 
+  /** 댓글 개수만 센다(상세 화면의 숫자) */
+  async function countComments(trackId) {
+    var res = await getClient()
+      .from('comments')
+      .select('id', { count: 'exact', head: true })
+      .eq('track_id', trackId);
+    if (res.error) throw res.error;
+    return res.count || 0;
+  }
+
+  async function updateComment(id, body) {
+    var res = await getClient().from('comments').update({ body: body }).eq('id', id).select();
+    if (res.error) throw res.error;
+    if (!res.data || !res.data.length) throw new Error('내가 쓴 댓글만 고칠 수 있습니다.');
+    return res.data[0];
+  }
+
+  async function deleteComment(id) {
+    var res = await getClient().from('comments').delete().eq('id', id).select();
+    if (res.error) throw res.error;
+    if (!res.data || !res.data.length) throw new Error('지울 권한이 없습니다.');
+  }
+
   async function addComment(row) {
     var res = await getClient().from('comments').insert(row).select().single();
     if (res.error) throw res.error;
@@ -168,7 +191,10 @@
     isConfigured: isConfigured,
     listTracks: listTracks,
     listComments: listComments,
+    countComments: countComments,
     addComment: addComment,
+    updateComment: updateComment,
+    deleteComment: deleteComment,
     addTrack: addTrack,
     updateTrack: updateTrack,
     deleteTrack: deleteTrack,

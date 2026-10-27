@@ -703,8 +703,22 @@ body:not([data-route="track"]) .embeds { opacity: 0; }
 .track-out svg { width: 20px; height: 20px; fill: #aab2bf; }
 .track-out:hover svg { fill: var(--fg-dim); }
 
-.track-cmt { flex: none; }
-.track-cmt svg { width: 22px; height: 22px; fill: var(--fg); }
+/* 외곽선 말풍선 + 개수 */
+.track-cmt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 2px 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.track-cmt svg { width: 23px; height: 23px; }
+.cmt-n { font-size: 13px; font-weight: 700; color: var(--fg-dim); }
 
 .track-artist { margin: 0; color: var(--fg-dim); font-size: 16px; }
 
@@ -1064,3 +1078,55 @@ select.input {
 
 /* 창이 열려 있는 동안 뒤 화면은 스크롤되지 않게 */
 body.sheet-open { overflow: hidden; }
+
+/* 댓글 한 줄의 ⋮ 와 수정 */
+
+.cmt-head { gap: 8px; }
+.cmt-more {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #aab2bf;
+  cursor: pointer;
+}
+
+.cmt-more svg { width: 16px; height: 16px; fill: currentColor; }
+.cmt-more:hover { color: var(--fg-dim); }
+
+.cmt-menu { position: fixed; z-index: 90; min-width: 112px; }
+
+.cmt-edit { display: flex; gap: 6px; align-items: center; }
+.cmt-edit .flat-input { flex: 1; min-width: 0; height: 38px; font-size: 14px; }
+
+.cmt-save {
+  flex: none;
+  width: auto;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 0;
+  font-size: 13px;
+}
+
+.cmt-cancel {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cmt-toast {
+  flex: none;
+  margin: 0;
+  padding: 8px 20px 0;
+  font-size: 12.5px;
+  color: var(--accent-2);
+}

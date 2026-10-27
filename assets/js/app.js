@@ -461,7 +461,16 @@
     title.textContent = track.title || '제목 없음';
     artist.textContent = track.artist || '아티스트 미상';
     out.href = track.source_url;          // 앱이 깔려 있으면 앱으로 열린다
-    cmt.addEventListener('click', function () { window.Comments.open(track); });
+
+    var cmtN = document.getElementById('t-cmt-n');
+    function showCount(n) {
+      cmtN.textContent = n > 0 ? String(n) : '';
+      cmtN.hidden = !n;
+    }
+    window.DB.countComments(track.id).then(showCount, function () { /* 못 세도 그만 */ });
+    cmt.addEventListener('click', function () {
+      window.Comments.open(track, { onChange: showCount });
+    });
     document.title = (track.title || '') + ' · ummjjutube';
     watchAnchor();
 

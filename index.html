@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=25">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=25">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=25">
-<link rel="manifest" href="./manifest.webmanifest?v=25">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=26">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=26">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=26">
+<link rel="manifest" href="./manifest.webmanifest?v=26">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=25">
+<link rel="stylesheet" href="./assets/css/app.css?v=26">
 </head>
 <body data-route="list">
 
@@ -94,8 +94,12 @@
         </h1>
         <p class="track-artist" id="t-artist"></p>
       </div>
-      <button id="t-cmt" class="icon-btn track-cmt" type="button" aria-label="댓글">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+      <button id="t-cmt" class="track-cmt" type="button" aria-label="댓글">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 11.3c0 3.7-3.8 6.7-8.5 6.7-.86 0-1.69-.1-2.47-.29L4.5 20l1.2-3.4C4.2 15.3 3.5 13.4 3.5 11.3 3.5 7.6 7.3 4.6 12 4.6s8.5 3 8.5 6.7z"/>
+        </svg>
+        <span id="t-cmt-n" class="cmt-n" hidden></span>
       </button>
     </div>
 
@@ -217,6 +221,7 @@
         </button>
       </header>
 
+      <p class="cmt-toast" id="cmt-toast" role="status" hidden></p>
       <ul class="cmt-list" id="cmt-list"></ul>
       <p class="cmt-empty" id="cmt-empty" hidden>아직 댓글이 없습니다.</p>
 
@@ -250,14 +255,14 @@
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=25"></script>
-<script src="./assets/js/sources.js?v=25"></script>
-<script src="./assets/js/db.js?v=25"></script>
-<script src="./assets/js/auth.js?v=25"></script>
-<script src="./assets/js/crop.js?v=25"></script>
-<script src="./assets/js/comments.js?v=25"></script>
-<script src="./assets/js/player.js?v=25"></script>
-<script src="./assets/js/add.js?v=25"></script>
-<script src="./assets/js/app.js?v=25"></script>
+<script src="./assets/js/config.js?v=26"></script>
+<script src="./assets/js/sources.js?v=26"></script>
+<script src="./assets/js/db.js?v=26"></script>
+<script src="./assets/js/auth.js?v=26"></script>
+<script src="./assets/js/crop.js?v=26"></script>
+<script src="./assets/js/comments.js?v=26"></script>
+<script src="./assets/js/player.js?v=26"></script>
+<script src="./assets/js/add.js?v=26"></script>
+<script src="./assets/js/app.js?v=26"></script>
 </body>
 </html>
