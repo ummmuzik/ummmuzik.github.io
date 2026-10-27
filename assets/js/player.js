@@ -29,6 +29,8 @@
   var pending = null;
   var wantPlay = false;    // 재생을 요청해 놓고 아직 시작되지 않은 상태
   var retryTimers = [];
+  var ytPending = [];      // API 준비를 기다리는 일들
+  var gestureArmed = false;
   var ticker = null;
   var listeners = [];
 
@@ -56,6 +58,48 @@
   function setError(msg) {
     error = msg || '';
     emit();
+  }
+
+  /* ---------- 재생 재시도 ----------
+     자동 재생이 거부될 수 있어(특히 아이폰) 몇 번 더 눌러 보고,
+     그래도 안 되면 다음 터치 제스처 안에서 다시 시도한다. */
+
+  function clearRetries() {
+    retryTimers.forEach(clearTimeout);
+    retryTimers = [];
+    if (gestureArmed) {
+      document.removeEventListener('pointerdown', onGesture, true);
+      gestureArmed = false;
+    }
+  }
+
+  function nudgePlay() {
+    if (!wantPlay || playing) return;
+    if (mode === 'youtube' && yt && ytPlayerReady) {
+      try { yt.playVideo(); } catch (e) { /* 아직 준비 전 */ }
+    } else if (mode === 'soundcloud' && sc && scLoaded) {
+      try { sc.play(); } catch (e) { /* 위젯이 아직 */ }
+    }
+  }
+
+  function onGesture() {
+    document.removeEventListener('pointerdown', onGesture, true);
+    gestureArmed = false;
+    nudgePlay();
+  }
+
+  function armGestureRetry() {
+    if (gestureArmed) return;
+    gestureArmed = true;
+    document.addEventListener('pointerdown', onGesture, true);
+  }
+
+  function scheduleNudges() {
+    clearRetries();
+    [600, 1500, 2600].forEach(function (ms) {
+      retryTimers.push(setTimeout(nudgePlay, ms));
+    });
+    armGestureRetry();
   }
 
   function state() {
@@ -114,10 +158,52 @@
   /* ---------- 유튜브 ---------- */
 
   /*
-   * 클릭 투 로드. 누르기 전에는 유튜브에 아무것도 요청하지 않고, 누른 그
-   * 자리에서 autoplay=1 로 iframe 을 만든다(사용자 제스처 안이라 모바일에서도
-   * 재생이 막히지 않는다). 조작용 IFrame API 는 그 뒤에 붙인다.
+   * 아이폰은 "부모 창에서 일어난 터치" 안에서 재생 명령이 나가야만 iframe
+   * 재생을 허용한다. 그래서 화면을 처음 건드리는 순간 빈 재생기를 미리 띄워
+   * 두고(영상이 없으니 광고도 없다), 카드를 누른 그 자리에서 loadVideoById 를
+   * 부른다. 페이지를 열기만 해서는 유튜브에 아무 요청도 가지 않는다.
    */
+
+  var YT_VARS = {
+    controls: 0,
+    disablekb: 1,
+    playsinline: 1,
+    rel: 0,
+    modestbranding: 1,
+    iv_load_policy: 3,
+  };
+
+  function ytEvents() {
+    return {
+      onReady: function () {
+        ytPlayerReady = true;
+        ytFrame = document.getElementById('yt-frame');
+        try { yt.setVolume(volume); } catch (e) { /* 아직 준비 전일 수 있다 */ }
+        nudgePlay();
+        emit();
+      },
+      onStateChange: function (e) {
+        var S = window.YT.PlayerState;
+        // 재생 여부는 추측하지 않고 재생기가 알려 주는 상태만 따른다.
+        if (e.data === S.PLAYING || e.data === S.BUFFERING) {
+          playing = true;
+          wantPlay = false;
+          clearRetries();
+          emit();
+        } else if (e.data === S.PAUSED || e.data === S.UNSTARTED || e.data === S.CUED) {
+          playing = false;
+          emit();
+        } else if (e.data === S.ENDED) {
+          next();
+        }
+      },
+      onError: function () {
+        playing = false;
+        setError('이 유튜브 영상은 재생할 수 없습니다.');
+      },
+    };
+  }
+
   function ytEmbedUrl(id) {
     return (
       YT_HOST + '/embed/' + encodeURIComponent(id) +
@@ -127,103 +213,77 @@
     );
   }
 
-  function ensureYtFrame() {
-    if (ytFrame) return;
-    var ph = document.getElementById('yt-frame');
-    if (!ph) return;
-    ytFrame = document.createElement('iframe');
-    ytFrame.id = 'yt-frame';
-    ytFrame.title = 'YouTube 재생기';
-    ytFrame.allow = 'autoplay; encrypted-media; picture-in-picture';
-    ytFrame.setAttribute('frameborder', '0');
-    ph.replaceWith(ytFrame);
-  }
-
-  /** 이미 떠 있는 iframe 에 조작용 API 를 붙인다 */
-  function attachYouTube() {
-    if (yt || !ytFrame || !window.YT || !window.YT.Player) return;
-    yt = new window.YT.Player(ytFrame, {
-      events: {
-        onReady: function () {
-          ytPlayerReady = true;
-          try { yt.setVolume(volume); } catch (e) { /* 아직 준비 전일 수 있다 */ }
-          nudgePlay();
-          emit();
-        },
-        onStateChange: function (e) {
-          var S = window.YT.PlayerState;
-          // 재생 여부는 추측하지 않고 재생기가 알려 주는 상태만 따른다.
-          if (e.data === S.PLAYING || e.data === S.BUFFERING) {
-            playing = true;
-            wantPlay = false;
-            clearRetries();
-            emit();
-          }
-          else if (e.data === S.PAUSED || e.data === S.UNSTARTED || e.data === S.CUED) {
-            playing = false;
-            emit();
-          } else if (e.data === S.ENDED) { next(); }
-        },
-        onError: function () {
-          playing = false;
-          setError('이 유튜브 영상은 재생할 수 없습니다.');
-        },
-      },
-    });
-  }
-
-  function loadYouTubeApi() {
+  /** API 가 준비되면 할 일을 걸어 둔다 */
+  function loadYouTubeApi(then) {
+    ytPending.push(then);
+    if (window.YT && window.YT.Player) return flushYtPending();
     if (ytLoading) return;
     ytLoading = true;
     var prevHook = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = function () {
       if (typeof prevHook === 'function') prevHook();
-      attachYouTube();
+      flushYtPending();
     };
-    if (window.YT && window.YT.Player) attachYouTube();
-    else loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
+    loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
   }
 
-  /* 자동 재생이 거부됐을 때를 대비해 몇 번 더 눌러 본다(딜레이 허용) */
-
-  function clearRetries() {
-    retryTimers.forEach(clearTimeout);
-    retryTimers = [];
+  function flushYtPending() {
+    var list = ytPending;
+    ytPending = [];
+    list.forEach(function (fn) { fn(); });
   }
 
-  function nudgePlay() {
-    if (!wantPlay || playing) return;
-    if (mode === 'youtube' && yt && ytPlayerReady) {
-      try { yt.playVideo(); } catch (e) { /* 아직 준비 전 */ }
-    } else if (mode === 'soundcloud' && sc && scLoaded) {
-      try { sc.play(); } catch (e) { /* 위젯이 아직 */ }
-    }
-  }
-
-  function scheduleNudges() {
-    clearRetries();
-    [600, 1500, 2600].forEach(function (ms) {
-      retryTimers.push(setTimeout(nudgePlay, ms));
+  /** 영상 없이 빈 재생기만 띄워 둔다(미리 데우기) */
+  function buildEmptyPlayer() {
+    if (yt) return;
+    var ph = document.getElementById('yt-frame');
+    if (!ph) return;
+    yt = new window.YT.Player(ph, {
+      host: YT_HOST,
+      width: '100%',
+      height: '100%',
+      playerVars: YT_VARS,
+      events: ytEvents(),
     });
   }
 
+  /** 우리가 직접 만든 iframe 에 조작용 API 를 붙인다 */
+  function attachYouTube() {
+    if (yt || !ytFrame || !window.YT || !window.YT.Player) return;
+    yt = new window.YT.Player(ytFrame, { events: ytEvents() });
+  }
+
+  /** 화면을 처음 건드릴 때 한 번. 이때부터 유튜브에 접속한다. */
+  function warmUpYouTube() {
+    if (yt || ytFrame) return;
+    loadYouTubeApi(buildEmptyPlayer);
+  }
+
   function playYouTube(track) {
-    if (ytPlayerReady && yt) {
+    // 재생기가 이미 있으면 누른 그 자리에서 바로 튼다(아이폰도 이 경로로 된다).
+    if (yt && ytPlayerReady) {
       try {
         yt.loadVideoById(track.provider_id);
         yt.setVolume(volume);
-      } catch (e) { /* 아래 src 교체로 넘어간다 */ }
-      return;
+        yt.playVideo();
+        return;
+      } catch (e) { /* 아래로 넘어간다 */ }
     }
 
-    // 아직 조작 API 가 없다: iframe 을 만들거나 주소만 갈아 끼워 바로 튼다.
-    ensureYtFrame();
-    if (!ytFrame) return;
+    // 아직 재생기가 없다: autoplay=1 iframe 을 직접 만든다.
+    if (!ytFrame) {
+      var ph = document.getElementById('yt-frame');
+      if (!ph) return;
+      ytFrame = document.createElement('iframe');
+      ytFrame.id = 'yt-frame';
+      ytFrame.title = 'YouTube 재생기';
+      ytFrame.allow = 'autoplay; encrypted-media; picture-in-picture';
+      ytFrame.setAttribute('frameborder', '0');
+      ph.replaceWith(ytFrame);
+    }
     ytFrame.src = ytEmbedUrl(track.provider_id);
-    // 제스처 안에서 띄웠으니 재생될 것으로 본다. 잠시 뒤 API 가 붙으면
-    // 실제 상태(자동 재생이 막혔다면 멈춤)로 바로잡힌다.
-    playing = true;
-    loadYouTubeApi();
+    playing = true;     // 제스처 안에서 띄웠으니 재생될 것으로 본다
+    loadYouTubeApi(attachYouTube);
   }
 
   /* ---------- 사운드클라우드 ---------- */
@@ -452,6 +512,9 @@
     scFrame = document.getElementById('sc-frame');
     embeds.hidden = false;      // 화면 밖에 있을 뿐, 항상 살아 있어야 한다
     readVolume();
+
+    // 화면을 처음 건드릴 때 빈 재생기를 띄워 둔다(페이지 로드만으로는 접속 안 함)
+    document.addEventListener('pointerdown', warmUpYouTube, { once: true, capture: true });
 
     // 스페이스바 = 재생/일시정지 (입력 중일 때는 제외)
     document.addEventListener('keydown', function (e) {
