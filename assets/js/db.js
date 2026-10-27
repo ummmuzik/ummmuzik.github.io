@@ -46,5 +46,27 @@
     return res.data;
   }
 
-  window.DB = { isConfigured: isConfigured, listTracks: listTracks, addTrack: addTrack };
+  /**
+   * 커버 이미지를 Storage 에 올리고 공개 URL 을 돌려준다.
+   * 파일 이름은 쓰지 않고 새로 만든다(한글·공백·중복 회피).
+   */
+  async function uploadCover(blob, ext) {
+    var name =
+      Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) + '.' + (ext || 'jpg');
+    var bucket = getClient().storage.from(cfg.BUCKET || 'covers');
+    var up = await bucket.upload(name, blob, {
+      contentType: blob.type || 'image/jpeg',
+      cacheControl: '31536000',
+      upsert: false,
+    });
+    if (up.error) throw up.error;
+    return bucket.getPublicUrl(name).data.publicUrl;
+  }
+
+  window.DB = {
+    isConfigured: isConfigured,
+    listTracks: listTracks,
+    addTrack: addTrack,
+    uploadCover: uploadCover,
+  };
 })();

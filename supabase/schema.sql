@@ -37,3 +37,26 @@ create policy "tracks: public insert"
   with check (true);
 
 -- 수정/삭제는 아무에게도 허용하지 않는다(정책 없음 = 거부).
+
+-- ---------------------------------------------------------------------------
+-- 커버 이미지 저장소 (등록 페이지의 image 업로드)
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public)
+values ('covers', 'covers', true)
+on conflict (id) do nothing;
+
+-- 커버는 사이트에서 그대로 보여 줘야 하므로 공개 읽기.
+drop policy if exists "covers: public read" on storage.objects;
+create policy "covers: public read"
+  on storage.objects for select
+  using (bucket_id = 'covers');
+
+-- 누구나 올릴 수 있다. tracks 의 insert 정책과 같은 수준으로 맞춘다.
+--   등록을 제한하려면 아래 정책의 대상을 authenticated 로 바꾸세요.
+drop policy if exists "covers: public upload" on storage.objects;
+create policy "covers: public upload"
+  on storage.objects for insert
+  with check (bucket_id = 'covers');
+
+-- 덮어쓰기/삭제는 허용하지 않는다(정책 없음 = 거부).

@@ -12,4 +12,7 @@ window.APP_CONFIG = {
 
   // 트랙을 저장하는 테이블 이름 (supabase/schema.sql 과 일치해야 합니다)
   TABLE: 'tracks',
+
+  // 커버 이미지를 올릴 Storage 버킷 이름
+  BUCKET: 'covers',
 };

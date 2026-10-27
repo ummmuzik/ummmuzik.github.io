@@ -12,7 +12,7 @@ GitHub Pages 로 호스팅하고, 데이터는 Supabase(Postgres) 에 저장합�
 
 1. [supabase.com](https://supabase.com) 에서 프로젝트를 만듭니다.
 2. **SQL Editor** 에 [`supabase/schema.sql`](supabase/schema.sql) 내용을 붙여넣고 실행합니다.
-   (`tracks` 테이블 + RLS 정책이 만들어집니다.)
+   (`tracks` 테이블 + RLS 정책, 커버 사진을 올릴 `covers` 스토리지 버킷이 만들어집니다.)
 3. **Project Settings → API** 에서 두 값을 복사해 [`assets/js/config.js`](assets/js/config.js) 에 넣습니다.
 
 ```js
@@ -57,12 +57,16 @@ python3 -m http.server 8000   # http://localhost:8000
 
 | 입력 | 설명 |
 | --- | --- |
-| 링크 | `youtube.com/watch?v=…`, `youtu.be/…`, `youtube.com/shorts/…`, `soundcloud.com/…` |
-| 제목 | 필수 |
-| 아티스트 | 필수 |
-| 커버 이미지 URL | 선택. 비우면 유튜브 썸네일(`i.ytimg.com/vi/<id>/hqdefault.jpg`)을 씁니다. 사운드클라우드는 커버가 자동으로 잡히지 않으니 직접 넣어 주세요. |
+| url | `youtube.com/watch?v=…`, `youtu.be/…`, `youtube.com/shorts/…`, `soundcloud.com/…` |
+| title | 필수 |
+| artist | 필수 |
+| image | 선택. 휴대폰·PC 의 사진을 올립니다(Supabase Storage `covers` 버킷). 비우면 유튜브 썸네일(`i.ytimg.com/vi/<id>/hqdefault.jpg`)을 씁니다. 사운드클라우드는 커버가 자동으로 잡히지 않으니 사진을 올려 주세요. |
 
 같은 링크는 한 번만 등록됩니다(`source_url` 유니크 인덱스).
+
+올린 사진은 업로드 전에 **긴 변 800px, JPEG 품질 85%** 로 줄입니다. 휴대폰 사진은
+한 장에 수 MB 라 원본 그대로 두면 목록 페이지가 느려지기 때문입니다. 브라우저가
+해당 형식을 디코딩하지 못하면(예: 일부 환경의 HEIC) 원본을 그대로 올립니다.
 
 ## 4. 플레이어 동작
 
@@ -88,6 +92,11 @@ drop policy "tracks: public insert" on public.tracks;
 create policy "tracks: authed insert"
   on public.tracks for insert to authenticated
   with check (true);
+
+drop policy "covers: public upload" on storage.objects;
+create policy "covers: authed upload"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'covers');
 ```
 
 그다음 Supabase Auth(이메일 매직링크 등)로 로그인 화면을 등록 페이지 앞에 붙입니다.
@@ -108,5 +117,5 @@ assets/js/db.js         Supabase 조회·저장
 assets/js/player.js     하단 고정 플레이어 (유튜브 + 사운드클라우드)
 assets/js/list.js       목록 페이지 로직
 assets/js/add.js        등록 페이지 로직
-supabase/schema.sql     테이블 + RLS 정책
+supabase/schema.sql     테이블 + RLS 정책 + covers 스토리지 버킷
 ```
