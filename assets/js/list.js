@@ -6,6 +6,8 @@
   var state = document.getElementById('state');
   var notice = document.getElementById('notice');
   var count = document.getElementById('count');
+  var toolbar = document.getElementById('toolbar');
+  var wrap = document.querySelector('main.wrap');
 
   var tracks = [];   // 전체 트랙 = 재생 큐
 
@@ -17,6 +19,8 @@
   function setState(msg) {
     state.textContent = msg || '';
     state.hidden = !msg;
+    // 안내 문구만 있을 때는 본문 여백을 없애 정확히 가운데 오게 한다.
+    wrap.classList.toggle('is-centered', !!msg && !grid.children.length);
   }
 
   function initials(track) {
@@ -93,7 +97,8 @@
     markPlaying(window.Player.current());
 
     count.textContent = tracks.length ? tracks.length + ' 곡' : '';
-    setState(tracks.length ? '' : '아직 등록된 음악이 없습니다. “음악 등록”에서 첫 트랙을 추가해 보세요.');
+    toolbar.hidden = !tracks.length;
+    setState(tracks.length ? '' : '등록된 음악이 없습니다.');
   }
 
   function markPlaying(track) {
@@ -107,6 +112,7 @@
     if (!window.DB.isConfigured()) {
       grid.setAttribute('aria-busy', 'false');
       setState('');
+      toolbar.hidden = true;
       showNotice(
         '<strong>Supabase 설정이 필요합니다.</strong> ' +
         '<code>assets/js/config.js</code> 에 프로젝트 URL 과 anon key 를 넣고, ' +
@@ -121,6 +127,7 @@
     } catch (err) {
       grid.setAttribute('aria-busy', 'false');
       setState('');
+      toolbar.hidden = true;
       showNotice(
         '<strong>목록을 불러오지 못했습니다.</strong> ' +
         (err && err.message ? String(err.message) : '알 수 없는 오류') +
