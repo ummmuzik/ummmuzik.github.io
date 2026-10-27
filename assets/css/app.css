@@ -62,10 +62,10 @@ code {
   top: 0;
   z-index: 20;
   flex: none;
-  /* 1fr 열의 가운데 = (화면 폭 - 오른쪽 버튼 폭) / 2.
-     좌우 패딩이 같고 gap 이 0 이라 버튼 폭만 제외한 정중앙이 된다. */
+  /* 가운데 열을 양쪽 1fr 이 똑같이 밀어내므로, 브랜드는 오른쪽 버튼 폭과
+     무관하게 화면 전체 폭의 정중앙에 온다. */
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 0;
   padding: 14px 20px;
@@ -78,10 +78,11 @@ code {
   font-size: 18px;
   letter-spacing: -0.01em;
   text-decoration: none;
+  grid-column: 2;
   justify-self: center;
 }
 
-.top-nav { display: flex; justify-self: end; gap: 8px; }
+.top-nav { grid-column: 3; display: flex; justify-self: end; gap: 8px; }
 
 /* 테두리 없는 텍스트 버튼 */
 .btn-text {
