@@ -1,7 +1,10 @@
 /*
- * 하단 고정 플레이어.
- * 유튜브(IFrame Player API)와 사운드클라우드(Widget API)를 하나의 컨트롤로 감싼다.
- * 두 API 스크립트는 해당 소스를 처음 재생할 때 주입한다.
+ * 재생 엔진. 화면(목록·상세·등록)이 바뀌어도 살아 있어야 하므로 특정 화면의
+ * DOM 을 직접 만지지 않는다. 상태가 바뀌면 구독자에게 알리고, 화면 쪽에서
+ * 자기 UI 를 갱신한다.
+ *
+ * 유튜브는 IFrame Player API, 사운드클라우드는 Widget API 를 쓰고,
+ * 두 스크립트는 해당 소스를 처음 재생할 때만 불러온다.
  */
 (function () {
   'use strict';
@@ -9,22 +12,23 @@
   var YT_API = 'https://www.youtube.com/iframe_api';
   var SC_API = 'https://w.soundcloud.com/player/api.js';
 
-  var queue = [];      // 재생 목록 (목록 페이지에 보이는 순서)
-  var index = -1;      // 현재 트랙 위치
-  var mode = null;     // 'youtube' | 'soundcloud'
+  var queue = [];
+  var index = -1;
+  var playingId = null;
+  var mode = null;        // 'youtube' | 'soundcloud'
   var playing = false;
+  var duration = 0;
+  var position = 0;
+  var volume = 80;
+  var error = '';
 
   var yt = null, ytLoading = false, ytPlayerReady = false;
   var sc = null, scLoading = false, scLoaded = false;
-
-  var duration = 0, position = 0, dragging = false;
-  var volume = 80;
+  var pending = null;
   var ticker = null;
-  var pending = null;  // API 준비 전에 누른 트랙
-  var playingId = null;
   var listeners = [];
 
-  var el = {};
+  var embeds = null, scFrame = null;
 
   /* ---------- 유틸 ---------- */
 
@@ -40,36 +44,37 @@
     s.setAttribute('data-src', src);
     s.addEventListener('load', done);
     s.addEventListener('error', function () {
-      setStatus('재생기를 불러오지 못했습니다. 네트워크를 확인해 주세요.');
+      setError('재생기를 불러오지 못했습니다. 네트워크를 확인해 주세요.');
     });
     document.head.appendChild(s);
   }
 
-  function fmt(sec) {
-    if (!isFinite(sec) || sec < 0) sec = 0;
-    var m = Math.floor(sec / 60);
-    var s = Math.floor(sec % 60);
-    return m + ':' + (s < 10 ? '0' : '') + s;
+  function setError(msg) {
+    error = msg || '';
+    emit();
   }
 
-  /** range 입력의 채워진 비율을 CSS 변수로 넘긴다 */
-  function fill(input) {
-    var max = Number(input.max) || 1;
-    var val = Number(input.value) || 0;
-    input.style.setProperty('--fill', (max > 0 ? (val / max) * 100 : 0) + '%');
-  }
-
-  function setStatus(msg) {
-    if (el.status) el.status.textContent = msg || '';
+  function state() {
+    return {
+      track: queue[index] || null,
+      index: index,
+      playing: playing,
+      position: position,
+      duration: duration,
+      volume: volume,
+      error: error,
+      hasPrev: index > 0,
+      hasNext: index >= 0 && index + 1 < queue.length,
+    };
   }
 
   function emit() {
-    var track = queue[index] || null;
+    var s = state();
     listeners.forEach(function (fn) {
       try {
-        fn({ track: track, index: index, playing: playing });
+        fn(s);
       } catch (e) {
-        /* 리스너 오류는 재생을 막지 않는다 */
+        /* 한 화면의 오류가 재생을 막지 않게 */
       }
     });
   }
@@ -78,7 +83,7 @@
     try {
       var v = parseInt(localStorage.getItem('ummmuzik:volume'), 10);
       if (isFinite(v) && v >= 0 && v <= 100) volume = v;
-    } catch (e) { /* 저장소 접근 불가 — 기본값 사용 */ }
+    } catch (e) { /* 저장소 접근 불가 */ }
   }
 
   function saveVolume() {
@@ -86,8 +91,6 @@
       localStorage.setItem('ummmuzik:volume', String(volume));
     } catch (e) { /* 무시 */ }
   }
-
-  /* ---------- 미디어 세션 (잠금화면 / 미디어 키) ---------- */
 
   function updateMediaSession(track) {
     if (!('mediaSession' in navigator) || !window.MediaMetadata) return;
@@ -101,7 +104,7 @@
       navigator.mediaSession.setActionHandler('pause', function () { toggle(); });
       navigator.mediaSession.setActionHandler('previoustrack', function () { prev(); });
       navigator.mediaSession.setActionHandler('nexttrack', function () { next(); });
-    } catch (e) { /* 지원하지 않는 브라우저 */ }
+    } catch (e) { /* 미지원 브라우저 */ }
   }
 
   /* ---------- 유튜브 ---------- */
@@ -125,9 +128,9 @@
       if (ytPlayerReady) {
         clearInterval(waiter);
         onReady();
-      } else if (++tries > 200) {  // 20초
+      } else if (++tries > 200) {
         clearInterval(waiter);
-        setStatus('유튜브 재생기를 불러오지 못했습니다.');
+        setError('유튜브 재생기를 불러오지 못했습니다.');
       }
     }, 100);
   }
@@ -152,14 +155,13 @@
         },
         onStateChange: function (e) {
           var S = window.YT.PlayerState;
-          if (e.data === S.PLAYING) { playing = true; render(); emit(); }
-          else if (e.data === S.PAUSED) { playing = false; render(); emit(); }
+          if (e.data === S.PLAYING) { playing = true; emit(); }
+          else if (e.data === S.PAUSED) { playing = false; emit(); }
           else if (e.data === S.ENDED) { next(); }
         },
         onError: function () {
-          setStatus('이 유튜브 영상은 재생할 수 없습니다.');
           playing = false;
-          render();
+          setError('이 유튜브 영상은 재생할 수 없습니다.');
         },
       },
     });
@@ -175,11 +177,7 @@
     );
   }
 
-  /**
-   * 사운드클라우드 위젯을 준비한다.
-   * onReady(alreadyLoaded) — alreadyLoaded 가 true 면 위젯을 만들 때 이미 이 트랙을
-   * 로드했으므로 호출한 쪽에서 load() 를 다시 부르지 않아야 한다.
-   */
+  /** onReady(alreadyLoaded) — true 면 위젯을 만들 때 이미 이 트랙을 로드했다 */
   function ensureSoundCloud(track, onReady) {
     if (scLoaded) return onReady(false);
 
@@ -195,39 +193,36 @@
     scLoading = true;
     loadScript(SC_API, function () {
       if (!window.SC || !window.SC.Widget) {
-        setStatus('사운드클라우드 재생기를 불러오지 못했습니다.');
+        setError('사운드클라우드 재생기를 불러오지 못했습니다.');
         return;
       }
-      // 첫 트랙은 iframe src 로 바로 로드한다 (auto_play 포함).
-      el.scFrame.src = scEmbedUrl(track.source_url, true);
-      sc = window.SC.Widget(el.scFrame);
+      scFrame.src = scEmbedUrl(track.source_url, true);
+      sc = window.SC.Widget(scFrame);
+
       sc.bind(window.SC.Widget.Events.READY, function () {
-        if (!scLoaded) {
-          scLoaded = true;
-          sc.setVolume(volume);
-          sc.getDuration(function (ms) { duration = (ms || 0) / 1000; render(); });
-          playing = true;
-          render();
-          emit();
-          onReady(true);  // iframe src 로 이미 이 트랙을 로드했다
-        }
+        if (scLoaded) return;
+        scLoaded = true;
+        sc.setVolume(volume);
+        sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
+        playing = true;
+        emit();
+        onReady(true);
       });
       sc.bind(window.SC.Widget.Events.PLAY, function () {
         playing = true;
-        sc.getDuration(function (ms) { duration = (ms || 0) / 1000; render(); });
-        render();
+        sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
         emit();
       });
-      sc.bind(window.SC.Widget.Events.PAUSE, function () { playing = false; render(); emit(); });
+      sc.bind(window.SC.Widget.Events.PAUSE, function () { playing = false; emit(); });
       sc.bind(window.SC.Widget.Events.FINISH, function () { next(); });
       sc.bind(window.SC.Widget.Events.PLAY_PROGRESS, function (e) {
-        if (!dragging && e && typeof e.currentPosition === 'number') {
+        if (e && typeof e.currentPosition === 'number') {
           position = e.currentPosition / 1000;
-          render();
+          emit();
         }
       });
       sc.bind(window.SC.Widget.Events.ERROR, function () {
-        setStatus('이 사운드클라우드 트랙은 재생할 수 없습니다.');
+        setError('이 사운드클라우드 트랙은 재생할 수 없습니다.');
       });
     });
   }
@@ -236,7 +231,6 @@
 
   function setQueue(tracks) {
     queue = tracks || [];
-    // 목록이 갱신되어도 재생 중인 트랙의 위치를 잃지 않게 맞춰 준다.
     if (playingId) {
       var found = queue.findIndex(function (t) { return t.id === playingId; });
       if (found !== -1) index = found;
@@ -250,11 +244,8 @@
     playingId = track.id;
     position = 0;
     duration = 0;
-    setStatus('');
-    el.root.hidden = false;
-    document.body.classList.add('has-player');
-    if (typeof el.syncPadding === 'function') el.syncPadding();
-    renderMeta(track);
+    error = '';
+    embeds.hidden = false;
     updateMediaSession(track);
     emit();
 
@@ -264,11 +255,11 @@
       if (sc && scLoaded) { try { sc.pause(); } catch (e) {} }
       pending = track;
       ensureYouTube(function () {
-        if (pending !== track && mode !== 'youtube') return;
+        if (pending !== track) return;
         yt.loadVideoById(track.provider_id);
         yt.setVolume(volume);
         playing = true;
-        render();
+        emit();
       });
     } else if (track.provider === 'soundcloud') {
       mode = 'soundcloud';
@@ -285,19 +276,20 @@
             hide_related: true,
             callback: function () {
               sc.setVolume(volume);
-              sc.getDuration(function (ms) { duration = (ms || 0) / 1000; render(); });
+              sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
             },
           });
         }
         playing = true;
-        render();
+        emit();
       });
     } else {
-      setStatus('지원하지 않는 소스입니다.');
+      setError('지원하지 않는 소스입니다.');
     }
     startTicker();
   }
 
+  /** 트랙을 재생한다. 같은 트랙이면 재생/일시정지를 토글한다. */
   function playTrack(track, tracks) {
     if (tracks) setQueue(tracks);
     var i = queue.findIndex(function (t) { return t.id === track.id; });
@@ -305,7 +297,7 @@
       queue = queue.concat([track]);
       i = queue.length - 1;
     }
-    if (i === index) { toggle(); return; }  // 같은 트랙을 다시 누르면 재생/일시정지
+    if (i === index) { toggle(); return; }
     playAt(i);
   }
 
@@ -321,12 +313,11 @@
 
   function next() {
     if (index + 1 < queue.length) playAt(index + 1);
-    else { playing = false; position = 0; render(); emit(); }
+    else { playing = false; position = 0; emit(); }
   }
 
   function prev() {
-    // 3초 이상 재생했으면 처음으로, 아니면 이전 트랙
-    if (position > 3) { seekTo(0); return; }
+    if (position > 3) { seekTo(0); return; }   // 3초 넘게 들었으면 처음으로
     if (index - 1 >= 0) playAt(index - 1);
     else seekTo(0);
   }
@@ -335,7 +326,7 @@
     position = Math.max(0, Math.min(sec, duration || sec));
     if (mode === 'youtube' && yt && ytPlayerReady) yt.seekTo(position, true);
     else if (mode === 'soundcloud' && sc && scLoaded) sc.seekTo(position * 1000);
-    render();
+    emit();
   }
 
   function setVolume(v) {
@@ -343,120 +334,33 @@
     if (yt && ytPlayerReady) { try { yt.setVolume(volume); } catch (e) {} }
     if (sc && scLoaded) { try { sc.setVolume(volume); } catch (e) {} }
     saveVolume();
-    render();
+    emit();
   }
 
   function startTicker() {
     if (ticker) return;
     ticker = setInterval(function () {
-      if (mode === 'youtube' && yt && ytPlayerReady && !dragging) {
+      if (mode === 'youtube' && yt && ytPlayerReady) {
         try {
           var d = yt.getDuration();
           if (isFinite(d) && d > 0) duration = d;
           position = yt.getCurrentTime() || 0;
-          render();
+          emit();
         } catch (e) { /* 아직 준비 중 */ }
       }
     }, 250);
   }
 
-  /* ---------- 렌더링 ---------- */
-
   function applyMode() {
-    el.root.setAttribute('data-mode', mode || '');
-  }
-
-  function renderMeta(track) {
-    el.title.textContent = track.title || '제목 없음';
-    el.artist.textContent = track.artist || '아티스트 미상';
-    if (track.cover_url) {
-      el.cover.src = track.cover_url;
-      el.cover.hidden = false;
-    } else {
-      el.cover.removeAttribute('src');
-      el.cover.hidden = true;
-    }
-    el.source.href = track.source_url;
-    el.source.textContent = track.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
-  }
-
-  function render() {
-    el.toggle.setAttribute('aria-label', playing ? '일시정지' : '재생');
-    el.toggle.classList.toggle('is-playing', playing);
-    el.cur.textContent = fmt(position);
-    el.dur.textContent = duration ? fmt(duration) : '--:--';
-    if (!dragging) {
-      el.seek.max = String(Math.max(1, Math.floor(duration || 0)));
-      el.seek.value = String(Math.floor(position || 0));
-    }
-    el.seek.disabled = !duration;
-    fill(el.seek);
-    el.vol.value = String(volume);
-    fill(el.vol);
-    el.prev.disabled = queue.length === 0;
-    el.next.disabled = index + 1 >= queue.length;
+    embeds.setAttribute('data-mode', mode || '');
   }
 
   /* ---------- 초기화 ---------- */
 
   function init() {
-    el.root = document.getElementById('player');
-    if (!el.root) return;
-    el.cover = document.getElementById('p-cover');
-    el.title = document.getElementById('p-title');
-    el.artist = document.getElementById('p-artist');
-    el.source = document.getElementById('p-source');
-    el.toggle = document.getElementById('p-toggle');
-    el.prev = document.getElementById('p-prev');
-    el.next = document.getElementById('p-next');
-    el.seek = document.getElementById('p-seek');
-    el.cur = document.getElementById('p-cur');
-    el.dur = document.getElementById('p-dur');
-    el.vol = document.getElementById('p-vol');
-    el.expand = document.getElementById('p-expand');
-    el.status = document.getElementById('p-status');
-    el.scFrame = document.getElementById('sc-frame');
-
+    embeds = document.getElementById('embeds');
+    scFrame = document.getElementById('sc-frame');
     readVolume();
-
-    el.toggle.addEventListener('click', toggle);
-    el.prev.addEventListener('click', prev);
-    el.next.addEventListener('click', next);
-    el.vol.addEventListener('input', function () { setVolume(parseInt(el.vol.value, 10)); });
-    el.vol.value = String(volume);
-    fill(el.vol);
-
-    el.seek.addEventListener('pointerdown', function () { dragging = true; });
-    el.seek.addEventListener('input', function () {
-      el.cur.textContent = fmt(parseInt(el.seek.value, 10));
-      fill(el.seek);
-    });
-    function endDrag() {
-      if (!dragging) return;
-      dragging = false;
-      seekTo(parseInt(el.seek.value, 10));
-    }
-    el.seek.addEventListener('change', endDrag);
-    el.seek.addEventListener('pointerup', endDrag);
-    el.seek.addEventListener('keyup', endDrag);
-
-    // 플레이어 높이가 바뀌면 그만큼 본문 아래 여백을 맞춰, 마지막 줄이 가려지지 않게 한다.
-    function syncBodyPadding() {
-      if (el.root.hidden) return;
-      document.body.style.paddingBottom = (el.root.offsetHeight + 16) + 'px';
-    }
-    if (window.ResizeObserver) {
-      new ResizeObserver(syncBodyPadding).observe(el.root);
-    } else {
-      window.addEventListener('resize', syncBodyPadding);
-    }
-
-    el.expand.addEventListener('click', function () {
-      var open = el.root.classList.toggle('is-expanded');
-      el.expand.setAttribute('aria-expanded', String(open));
-      el.expand.setAttribute('aria-label', open ? '영상 접기' : '영상 펼치기');
-      syncBodyPadding();
-    });
 
     // 스페이스바 = 재생/일시정지 (입력 중일 때는 제외)
     document.addEventListener('keydown', function (e) {
@@ -466,9 +370,6 @@
       e.preventDefault();
       toggle();
     });
-
-    el.syncPadding = syncBodyPadding;
-    render();
   }
 
   window.Player = {
@@ -478,7 +379,10 @@
     toggle: toggle,
     next: next,
     prev: prev,
-    onChange: function (fn) { listeners.push(fn); },
-    current: function () { return queue[index] || null; },
+    seekTo: seekTo,
+    setVolume: setVolume,
+    state: state,
+    subscribe: function (fn) { listeners.push(fn); return fn; },
+    unsubscribe: function (fn) { listeners = listeners.filter(function (f) { return f !== fn; }); },
   };
 })();

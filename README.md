@@ -3,8 +3,18 @@
 유튜브 / 사운드클라우드 링크로 음악을 모아 듣는 정적 사이트.
 GitHub Pages 로 호스팅하고, 데이터는 Supabase(Postgres) 에 저장합니다.
 
-- `index.html` — 목록 페이지. 커버·제목·아티스트가 보이고, 카드를 누르면 바로 재생됩니다. 플레이어는 화면 하단에 항상 고정됩니다.
-- `add.html` — 등록 페이지. 커버 이미지 URL / 링크 / 제목 / 아티스트를 입력해 저장합니다.
+화면은 세 개이고 주소가 각각 다릅니다.
+
+| 주소 | 화면 |
+| --- | --- |
+| `#/` | 목록. 커버·제목·아티스트 카드. 누르면 재생이 시작되고 상세로 이동합니다. |
+| `#/track/<id>` | 상세. 큰 커버, 제목, 아티스트, 재생 바와 버튼. 좌측 상단은 뒤로, 우측 상단은 유튜브/사운드클라우드 원본으로 갑니다. |
+| `#/add` | 등록. url / title / artist / image 를 입력해 저장합니다. |
+
+**문서는 `index.html` 하나입니다.** 화면마다 `.html` 파일을 두면 이동할 때마다 브라우저가
+문서를 새로 읽으면서 재생기 iframe 이 파괴돼 음악이 끊깁니다. 그래서 주소만 나누고
+(뒤로가기·북마크·링크 공유 모두 정상 동작) 문서는 하나로 둬서, 어느 화면으로 옮겨도
+재생이 이어지게 했습니다. `add.html` 은 예전 링크를 위한 리다이렉트만 남아 있습니다.
 
 빌드 도구 없이 순수 HTML·CSS·JS 로 되어 있어, 파일을 그대로 올리면 동작합니다.
 
@@ -53,7 +63,7 @@ python3 -m http.server 8000   # http://localhost:8000
 
 ## 3. 음악 등록
 
-등록 페이지에서 입력합니다.
+등록 화면(`#/add`)에서 입력합니다.
 
 | 입력 | 설명 |
 | --- | --- |
@@ -73,8 +83,13 @@ python3 -m http.server 8000   # http://localhost:8000
 - 유튜브는 [IFrame Player API](https://developers.google.com/youtube/iframe_api_reference),
   사운드클라우드는 [Widget API](https://developers.soundcloud.com/docs/api/html5-widget) 로 재생합니다.
   두 API 스크립트는 해당 소스를 처음 재생할 때만 불러옵니다.
-- 재생/일시정지, 이전/다음, 재생 위치 탐색, 음량, 영상 펼치기(⤢)를 지원합니다.
-- 트랙이 끝나면 목록에 보이는 순서(최신순)대로 다음 곡이 이어집니다.
+- 재생/일시정지, 이전/다음, 재생 위치 탐색, 음량을 지원합니다.
+- 재생기 iframe 은 어느 화면에도 속하지 않는 전역 요소(`#embeds`)로 두고, 위치만 현재
+  화면의 `[data-embed-anchor]` 박스(하단바 썸네일 또는 상세 화면의 큰 커버)에 겹칩니다.
+  DOM 을 옮기지 않으므로 화면을 오가도 재생이 끊기지 않습니다.
+- 트랙이 끝나면 목록에 보이는 순서(최신순)대로 다음 곡이 이어집니다. 상세 화면을 보고
+  있었다면 화면도 다음 곡으로 따라갑니다.
+- 소리만 납니다. 영상을 보려면 상세 화면 우측 상단의 YouTube/SoundCloud 버튼을 쓰세요.
 - 스페이스바로 재생/일시정지, 미디어 키·잠금화면 제어(Media Session API)도 동작합니다.
 - 영상을 접어도 iframe 이 DOM 에 남아 있어 재생이 끊기지 않습니다.
 
@@ -108,14 +123,16 @@ create policy "covers: authed upload"
 ## 파일 구조
 
 ```
-index.html              목록 + 하단 플레이어
-add.html                등록 폼
+index.html              문서 하나 + 화면별 <template>
+add.html                #/add 로 보내는 리다이렉트 (예전 링크용)
 assets/css/app.css      스타일
 assets/js/config.js     Supabase 접속 정보 (여기를 채우세요)
 assets/js/sources.js    유튜브/사운드클라우드 링크 파싱
-assets/js/db.js         Supabase 조회·저장
-assets/js/player.js     하단 고정 플레이어 (유튜브 + 사운드클라우드)
-assets/js/list.js       목록 페이지 로직
-assets/js/add.js        등록 페이지 로직
+assets/js/db.js         Supabase 조회·저장·사진 업로드
+assets/js/player.js     재생 엔진 (유튜브 + 사운드클라우드, 화면과 분리)
+assets/js/app.js        라우터 + 목록·상세 화면 + 하단 플레이어
+assets/js/add.js        등록 화면
 supabase/schema.sql     테이블 + RLS 정책 + covers 스토리지 버킷
 ```
+
+정적 파일은 `?v=` 쿼리로 캐시를 끊습니다. css·js 를 고치면 `index.html` 의 숫자를 올리세요.

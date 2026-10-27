@@ -82,7 +82,8 @@ code {
   justify-self: center;
 }
 
-.top-nav { grid-column: 3; display: flex; justify-self: end; gap: 8px; }
+.top-left { grid-column: 1; display: flex; justify-self: start; align-items: center; }
+.top-right { grid-column: 3; display: flex; justify-self: end; align-items: center; gap: 8px; }
 
 /* 테두리 없는 텍스트 버튼 */
 .btn-text {
@@ -97,6 +98,9 @@ code {
 }
 
 .btn-text:hover { filter: brightness(0.92); }
+
+.icon-accent { color: var(--accent); }
+.icon-accent svg { width: 22px; height: 22px; }
 
 .btn {
   display: inline-flex;
@@ -147,15 +151,6 @@ code {
   font-size: 22px;
   letter-spacing: -0.02em;
 }
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.muted { color: var(--fg-dim); font-size: 13px; white-space: nowrap; }
 
 /* 상단바 아래 ~ 플레이어 위 영역의 정가운데.
    body 의 아래 여백(플레이어 높이)은 border-box 라 이 계산에 이미 반영된다. */
@@ -303,7 +298,9 @@ code {
 
 .card-btn:hover .cover img { transform: scale(1.04); }
 
-.cover.is-empty::before {
+.cover.is-empty::before,
+.p-media.is-empty::before,
+.track-cover.is-empty::before {
   content: attr(data-initials);
   position: absolute;
   inset: 0;
@@ -315,22 +312,8 @@ code {
   background: linear-gradient(145deg, #f1f3f6, #e2e6ec);
 }
 
-.badge {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  backdrop-filter: blur(4px);
-}
-
-.badge-youtube { background: rgba(255, 0, 0, 0.82); }
-.badge-soundcloud { background: rgba(255, 102, 0, 0.86); }
+.p-media.is-empty::before { font-size: 16px; }
+.track-cover.is-empty::before { font-size: 54px; }
 
 .cover-play {
   position: absolute;
@@ -375,7 +358,6 @@ code {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 40;
   display: grid;
   align-items: center;
   gap: 14px;
@@ -383,45 +365,24 @@ code {
   grid-template-areas: "media info ctrl seek extra";
   padding: 10px 18px;
   min-height: var(--bar-h);
+  /* 전역 iframe(.embeds, z-index 40) 위에 와야 한다 */
+  z-index: 50;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
   box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.07);
 }
 
-.player.is-expanded {
-  grid-template-areas:
-    "stage stage stage stage stage"
-    "media info ctrl seek extra";
-}
-
-/* 재생 중인 iframe 은 항상 DOM 에 살아 있어야 한다(접었다 펴도 재생이 끊기지 않게).
-   접힌 상태에서는 56×56 썸네일로 잘라 보여 주고, 커버 이미지를 그 위에 덮는다. */
 .p-media {
   grid-area: media;
   position: relative;
+  display: block;
   width: 56px;
   height: 56px;
   flex: none;
   overflow: hidden;
   border-radius: 10px;
   background: var(--bg-card);
-}
-
-.p-embeds {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 100px;
-  height: 56px;
-  transform: translateX(-50%);
-}
-
-.p-embeds > * {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
 }
 
 .p-cover {
@@ -432,37 +393,19 @@ code {
   object-fit: cover;
 }
 
-.player.is-expanded .p-media {
-  grid-area: stage;
-  width: min(620px, 94%);
-  height: auto;
-  aspect-ratio: 16 / 9;
-  margin: 6px auto 0;
-  border-radius: 12px;
-}
-
-.player.is-expanded .p-embeds {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transform: none;
-}
-
-.player.is-expanded .p-cover { display: none; }
-
-.player[data-mode="youtube"] #sc-frame { display: none; }
-.player[data-mode="soundcloud"] #yt-frame { display: none; }
-
 .p-info { grid-area: info; min-width: 0; }
 
 .p-title {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
 }
+
+.p-title:hover { text-decoration: underline; }
 
 .p-sub {
   display: flex;
@@ -585,13 +528,6 @@ code {
     padding: 10px 14px 12px;
   }
 
-  .player.is-expanded {
-    grid-template-areas:
-      "stage stage stage stage"
-      "media info  ctrl  extra"
-      "seek  seek  seek  seek";
-  }
-
   /* 모바일은 기기 음량 버튼을 쓰므로 슬라이더는 감추고 펼치기 버튼만 남긴다 */
   .vol-ico, .range.vol { display: none; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px; }
@@ -601,4 +537,93 @@ code {
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+}
+
+/* ---------- 전역 재생기 iframe ---------- */
+
+/* 화면이 바뀌어도 DOM 을 옮기지 않는다. 위치만 현재 화면의
+   [data-embed-anchor] 박스에 맞춰 겹쳐 둔다(= 재생이 끊기지 않는다). */
+.embeds {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 56px;
+  height: 56px;
+  z-index: 40;
+  overflow: hidden;
+  background: #000;
+  pointer-events: none;
+}
+
+.embeds > * {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.embeds[data-mode="youtube"] #sc-frame { display: none; }
+.embeds[data-mode="soundcloud"] #yt-frame { display: none; }
+
+/* ---------- 상세 화면 ---------- */
+
+.track {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+  padding: 8px 0 20px;
+}
+
+.track-cover {
+  position: relative;
+  z-index: 41;          /* 전역 iframe 바로 위 */
+  width: min(340px, 74vw);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+
+.track-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.track-meta { display: grid; gap: 4px; max-width: min(420px, 88vw); }
+
+.track-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.track-artist { margin: 0; color: var(--fg-dim); font-size: 14px; }
+
+.track-seek {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 88vw);
+}
+
+.track-controls { display: flex; align-items: center; gap: 18px; }
+
+.track-controls .play-btn { width: 62px; height: 62px; }
+.track-controls .play-btn svg { width: 28px; height: 28px; }
+.track-controls .icon-btn svg { width: 24px; height: 24px; }
+
+.track-status { margin: 0; min-height: 18px; font-size: 12.5px; color: var(--bad); }
+
+@media (max-width: 760px) {
+  .track { gap: 16px; }
+  .track-title { font-size: 19px; }
 }
