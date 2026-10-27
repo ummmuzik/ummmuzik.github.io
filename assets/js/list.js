@@ -6,10 +6,8 @@
   var state = document.getElementById('state');
   var notice = document.getElementById('notice');
   var count = document.getElementById('count');
-  var search = document.getElementById('q');
 
-  var all = [];      // 전체 트랙
-  var shown = [];    // 현재 화면(검색 결과) = 재생 큐
+  var tracks = [];   // 전체 트랙 = 재생 큐
 
   function showNotice(html) {
     notice.innerHTML = html;
@@ -79,7 +77,7 @@
     li.appendChild(btn);
 
     btn.addEventListener('click', function () {
-      window.Player.playTrack(track, shown);
+      window.Player.playTrack(track, tracks);
     });
 
     return li;
@@ -88,19 +86,14 @@
   function render() {
     grid.textContent = '';
     var frag = document.createDocumentFragment();
-    shown.forEach(function (t) { frag.appendChild(makeCard(t)); });
+    tracks.forEach(function (t) { frag.appendChild(makeCard(t)); });
     grid.appendChild(frag);
     grid.setAttribute('aria-busy', 'false');
-    window.Player.setQueue(shown);
+    window.Player.setQueue(tracks);
     markPlaying(window.Player.current());
 
-    count.textContent = all.length
-      ? shown.length + ' / ' + all.length + ' 곡'
-      : '';
-
-    if (!all.length) setState('아직 등록된 음악이 없습니다. “음악 등록”에서 첫 트랙을 추가해 보세요.');
-    else if (!shown.length) setState('검색 결과가 없습니다.');
-    else setState('');
+    count.textContent = tracks.length ? tracks.length + ' 곡' : '';
+    setState(tracks.length ? '' : '아직 등록된 음악이 없습니다. “음악 등록”에서 첫 트랙을 추가해 보세요.');
   }
 
   function markPlaying(track) {
@@ -108,19 +101,6 @@
     Array.prototype.forEach.call(grid.children, function (li) {
       li.classList.toggle('is-playing', li.dataset.id === id);
     });
-  }
-
-  function filter(q) {
-    var needle = q.trim().toLowerCase();
-    shown = !needle
-      ? all.slice()
-      : all.filter(function (t) {
-          return (
-            (t.title || '').toLowerCase().indexOf(needle) !== -1 ||
-            (t.artist || '').toLowerCase().indexOf(needle) !== -1
-          );
-        });
-    render();
   }
 
   async function load() {
@@ -136,8 +116,8 @@
     }
 
     try {
-      all = await window.DB.listTracks();
-      filter(search.value || '');
+      tracks = await window.DB.listTracks();
+      render();
     } catch (err) {
       grid.setAttribute('aria-busy', 'false');
       setState('');
@@ -148,8 +128,6 @@
       );
     }
   }
-
-  search.addEventListener('input', function () { filter(search.value); });
 
   window.Player.init();
   window.Player.onChange(function (s) { markPlaying(s.track); });

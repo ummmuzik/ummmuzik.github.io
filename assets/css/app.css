@@ -1,16 +1,24 @@
 /* ummmuzik — 목록 + 하단 고정 플레이어 */
 
 :root {
-  --bg: #0d0e12;
-  --bg-soft: #151822;
-  --bg-card: #171b26;
-  --line: #262b38;
-  --fg: #eef1f7;
-  --fg-dim: #9aa3b5;
-  --accent: #7c5cff;
-  --accent-2: #39d8a4;
-  --bad: #ff6b6b;
-  --warn: #ffbf5e;
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-soft: #f5f6f8;
+  --bg-card: #eceef2;
+  --line: #e3e6eb;
+  --fg: #15181d;
+  --fg-dim: #5f6878;
+
+  /* 포인트 컬러. 밝은 청록이라 흰 배경 위 텍스트로는 대비가 모자라므로,
+     면(버튼·진행 바)에는 --accent 를, 글자·테두리에는 어두운 --accent-ink 를 쓴다. */
+  --accent: #0dd2e4;
+  --accent-ink: #067684;
+  --on-accent: #06272d;
+
+  --accent-2: #0a7a52;
+  --bad: #c62828;
+  --warn: #c07c00;
   --bar-h: 76px;
   --radius: 14px;
 }
@@ -33,7 +41,7 @@ body.has-player { padding-bottom: calc(var(--bar-h) + 16px); }
 a { color: inherit; }
 
 code {
-  background: #0b0c10;
+  background: var(--bg-soft);
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 1px 5px;
@@ -51,7 +59,7 @@ code {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 20px;
-  background: rgba(13, 14, 18, 0.82);
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -81,15 +89,15 @@ code {
   cursor: pointer;
 }
 
-.btn:hover { border-color: #3a4154; }
+.btn:hover { border-color: #c8cfd9; }
 
 .btn-primary {
   background: var(--accent);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
 }
 
-.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:hover { filter: brightness(1.05); }
 .btn:disabled { opacity: 0.55; cursor: default; }
 
 /* ---------- 레이아웃 ---------- */
@@ -149,14 +157,13 @@ code {
 }
 
 .input:focus {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 1px;
   border-color: transparent;
 }
 
-.input::placeholder { color: #6a7488; }
+.input::placeholder { color: #98a0ae; }
 
-.search { max-width: 320px; }
 
 .form { display: grid; gap: 18px; }
 
@@ -164,7 +171,7 @@ code {
 
 .field label { font-size: 13px; font-weight: 600; color: var(--fg-dim); }
 
-.req { color: var(--accent); }
+.req { color: var(--accent-ink); }
 
 .hint { margin: 0; font-size: 12.5px; color: var(--fg-dim); }
 .hint.ok { color: var(--accent-2); }
@@ -220,7 +227,7 @@ code {
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--bg-card);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
 }
 
 .cover img {
@@ -241,8 +248,8 @@ code {
   place-items: center;
   font-size: 30px;
   font-weight: 700;
-  color: #4b5469;
-  background: linear-gradient(145deg, #1b1f2c, #121520);
+  color: #a7b0bd;
+  background: linear-gradient(145deg, #f1f3f6, #e2e6ec);
 }
 
 .badge {
@@ -267,7 +274,7 @@ code {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(10, 11, 15, 0.42);
+  background: rgba(8, 24, 28, 0.38);
   opacity: 0;
   transition: opacity 0.18s ease;
 }
@@ -295,8 +302,8 @@ code {
   white-space: nowrap;
 }
 
-.card.is-playing .cover { outline: 2px solid var(--accent); outline-offset: 2px; }
-.card.is-playing .card-title { color: var(--accent); }
+.card.is-playing .cover { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.card.is-playing .card-title { color: var(--accent-ink); }
 
 /* ---------- 플레이어 ---------- */
 
@@ -313,9 +320,10 @@ code {
   grid-template-areas: "media info ctrl seek extra";
   padding: 10px 18px;
   min-height: var(--bar-h);
-  background: rgba(18, 20, 28, 0.94);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.07);
 }
 
 .player.is-expanded {
@@ -334,7 +342,7 @@ code {
   flex: none;
   overflow: hidden;
   border-radius: 10px;
-  background: #0b0c10;
+  background: var(--bg-card);
 }
 
 .p-embeds {
@@ -402,7 +410,7 @@ code {
   overflow: hidden;
 }
 
-.p-sub a { color: var(--fg-dim); }
+.p-sub a { color: var(--accent-ink); }
 .p-status { font-size: 11.5px; color: var(--bad); }
 
 .p-controls {
@@ -425,17 +433,17 @@ code {
 }
 
 .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
-.icon-btn:hover { background: #242a39; }
+.icon-btn:hover { background: var(--bg-soft); }
 .icon-btn:disabled { opacity: 0.35; cursor: default; background: none; }
 
 .play-btn {
   width: 44px;
   height: 44px;
-  background: var(--fg);
-  color: #0d0e12;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-.play-btn:hover { background: #fff; }
+.play-btn:hover { filter: brightness(1.05); background: var(--accent); }
 .play-btn svg { width: 22px; height: 22px; }
 .play-btn .i-pause { display: none; }
 .play-btn.is-playing .i-play { display: none; }
@@ -462,12 +470,12 @@ code {
   flex: 1;
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) 0 var(--fill, 0%), #343b4d var(--fill, 0%) 100%);
+  background: linear-gradient(to right, var(--accent) 0 var(--fill, 0%), #dfe3e9 var(--fill, 0%) 100%);
   cursor: pointer;
 }
 
 .range.vol {
-  background: linear-gradient(to right, var(--fg-dim) 0 var(--fill, 0%), #343b4d var(--fill, 0%) 100%);
+  background: linear-gradient(to right, var(--fg-dim) 0 var(--fill, 0%), #dfe3e9 var(--fill, 0%) 100%);
 }
 
 .range::-webkit-slider-thumb {
@@ -477,6 +485,7 @@ code {
   border-radius: 50%;
   background: var(--fg);
   border: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
 }
 
 .range::-moz-range-thumb {
@@ -523,7 +532,6 @@ code {
   /* 모바일은 기기 음량 버튼을 쓰므로 슬라이더는 감추고 펼치기 버튼만 남긴다 */
   .vol-ico, .range.vol { display: none; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px; }
-  .search { max-width: none; }
   .top { padding: 12px 14px; }
   .wrap { padding: 18px 14px 32px; }
 }
