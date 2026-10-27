@@ -104,7 +104,7 @@
 
     function busy(on, label) {
       submit.disabled = on;
-      submit.textContent = on ? label : 'save';
+      submit.textContent = on ? label : 'SAVE';
     }
 
     form.addEventListener('submit', async function (e) {
@@ -164,14 +164,7 @@
         }
 
         await window.DB.addTrack(row);
-        if (typeof opts.onSaved === 'function') opts.onSaved();
-        setNotice('ok',
-          '<strong>저장했습니다.</strong> <a href="#/">목록에서 확인</a>하거나 계속 등록할 수 있습니다.');
-        form.reset();
-        dropPreviewUrl();
-        picked = null;
-        previewCover();
-        fUrl.focus();
+        if (typeof opts.onSaved === 'function') opts.onSaved();   // 목록으로 보낸다
       } catch (err) {
         setNotice('bad',
           '<strong>저장하지 못했습니다.</strong> ' +

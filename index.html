@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=15">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=15">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=15">
-<link rel="manifest" href="./manifest.webmanifest?v=15">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=16">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=16">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=16">
+<link rel="manifest" href="./manifest.webmanifest?v=16">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=15">
+<link rel="stylesheet" href="./assets/css/app.css?v=16">
 </head>
 <body data-route="list">
 
@@ -121,7 +121,7 @@
 <template id="tpl-add">
   <div id="notice" class="notice" hidden></div>
 
-  <form id="form" class="form" novalidate>
+  <form id="form" class="form add-form" novalidate>
     <!-- 커버: 라벨 없이 미리보기 영역 자체가 선택 버튼이다 -->
     <button type="button" id="cover-pick" class="cover-pick" aria-label="커버 사진 선택">
       <img id="cover-img" alt="" hidden>
@@ -131,40 +131,26 @@
     </button>
     <input id="f-cover" class="hidden-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
 
-    <div class="field">
-      <label for="f-url">url <span class="req">*</span></label>
-      <input id="f-url" class="input" type="url" inputmode="url" placeholder="Youtube or Soundcloud URL" required>
-    </div>
+    <input id="f-url" class="input flat-input" type="url" inputmode="url"
+           placeholder="Youtube or Soundcloud URL" aria-label="링크" required>
+    <input id="f-title" class="input flat-input" type="text" maxlength="200"
+           placeholder="Title" aria-label="제목" required>
+    <input id="f-artist" class="input flat-input" type="text" maxlength="200"
+           placeholder="Artist" aria-label="아티스트" required>
 
-    <div class="field">
-      <label for="f-title">title <span class="req">*</span></label>
-      <input id="f-title" class="input" type="text" maxlength="200" required>
-    </div>
-
-    <div class="field">
-      <label for="f-artist">artist <span class="req">*</span></label>
-      <input id="f-artist" class="input" type="text" maxlength="200" required>
-    </div>
-
-    <div class="actions">
-      <button id="submit" class="btn btn-primary" type="submit">save</button>
-    </div>
+    <button id="submit" class="btn btn-ink btn-block" type="submit">SAVE</button>
   </form>
 </template>
 
 <template id="tpl-login">
   <section class="auth">
-    <div class="auth-logo">
-      <img src="./assets/icons/icon-512.png?v=15" width="160" height="160" alt="" decoding="async">
-    </div>
-
     <div id="notice" class="notice" hidden></div>
 
     <div id="signed-out">
       <form id="login-form" class="form login-form">
-        <input id="l-id" class="input" type="text" placeholder="ID" aria-label="아이디"
+        <input id="l-id" class="input flat-input" type="text" placeholder="ID" aria-label="아이디"
                autocomplete="username" autocapitalize="off" spellcheck="false" required>
-        <input id="l-pw" class="input" type="password" placeholder="Password" aria-label="비밀번호"
+        <input id="l-pw" class="input flat-input" type="password" placeholder="Password" aria-label="비밀번호"
                autocomplete="current-password" required>
         <button id="l-submit" class="btn btn-ink btn-block" type="submit">SIGN IN</button>
       </form>
@@ -221,7 +207,7 @@
       <div class="crop-frame" id="crop-frame">
         <img id="crop-img" alt="" draggable="false">
       </div>
-      <input id="crop-zoom" class="range" type="range" min="100" max="300" value="100" step="1" aria-label="확대">
+      <p class="crop-hint">끌어서 옮기고, 두 손가락으로 벌려 확대하세요.</p>
       <div class="crop-actions">
         <button id="crop-cancel" class="btn" type="button">취소</button>
         <button id="crop-apply" class="btn btn-ink" type="button">적용</button>
@@ -231,13 +217,13 @@
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=15"></script>
-<script src="./assets/js/sources.js?v=15"></script>
-<script src="./assets/js/db.js?v=15"></script>
-<script src="./assets/js/auth.js?v=15"></script>
-<script src="./assets/js/crop.js?v=15"></script>
-<script src="./assets/js/player.js?v=15"></script>
-<script src="./assets/js/add.js?v=15"></script>
-<script src="./assets/js/app.js?v=15"></script>
+<script src="./assets/js/config.js?v=16"></script>
+<script src="./assets/js/sources.js?v=16"></script>
+<script src="./assets/js/db.js?v=16"></script>
+<script src="./assets/js/auth.js?v=16"></script>
+<script src="./assets/js/crop.js?v=16"></script>
+<script src="./assets/js/player.js?v=16"></script>
+<script src="./assets/js/add.js?v=16"></script>
+<script src="./assets/js/app.js?v=16"></script>
 </body>
 </html>

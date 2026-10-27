@@ -539,7 +539,10 @@
   function renderAdd() {
     view.appendChild(document.getElementById('tpl-add').content.cloneNode(true));
     window.AddView.mount({
-      onSaved: function () { tracksCache = null; },
+      onSaved: function () {
+        tracksCache = null;
+        location.hash = '#/';
+      },
     });
   }
 

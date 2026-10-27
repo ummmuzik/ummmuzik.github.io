@@ -29,13 +29,13 @@
     var back = node.querySelector('.crop-back');
     var frame = node.querySelector('#crop-frame');
     var view = node.querySelector('#crop-img');
-    var zoom = node.querySelector('#crop-zoom');
     var cancel = node.querySelector('#crop-cancel');
     var apply = node.querySelector('#crop-apply');
     document.body.appendChild(node);
 
-    var F = frame.clientWidth;                       // 틀 한 변
+    var F = frame.clientWidth || frame.getBoundingClientRect().width;    // 틀 한 변
     var base = F / Math.min(source.naturalWidth, source.naturalHeight);  // 틀을 꽉 채우는 배율
+    var MAX_Z = 4;
     var z = 1;
     var ox = 0, oy = 0;
 
@@ -57,7 +57,19 @@
       view.style.width = d.w + 'px';
       view.style.height = d.h + 'px';
       view.style.transform = 'translate(' + ox + 'px,' + oy + 'px)';
-      zoom.style.setProperty('--fill', ((z - 1) / 2) * 100 + '%');
+    }
+
+    /** 화면의 한 점(clientX/Y)을 제자리에 둔 채 배율만 바꾼다 */
+    function zoomAbout(nextZ, clientX, clientY) {
+      nextZ = Math.min(MAX_Z, Math.max(1, nextZ));
+      var rect = frame.getBoundingClientRect();
+      var fx = clientX - rect.left;
+      var fy = clientY - rect.top;
+      var ix = (fx - ox) / (base * z);
+      var iy = (fy - oy) / (base * z);
+      z = nextZ;
+      ox = fx - ix * base * z;
+      oy = fy - iy * base * z;
     }
 
     // 처음에는 가운데를 보여 준다
@@ -68,40 +80,72 @@
       draw();
     })();
 
-    /* 끌어서 옮기기 */
-    var dragging = false, lastX = 0, lastY = 0;
-    frame.addEventListener('pointerdown', function (e) {
-      dragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      frame.setPointerCapture(e.pointerId);
-    });
-    frame.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      ox += e.clientX - lastX;
-      oy += e.clientY - lastY;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      draw();
-    });
-    function endDrag(e) {
-      if (!dragging) return;
-      dragging = false;
-      try { frame.releasePointerCapture(e.pointerId); } catch (err) { /* 이미 놓였을 수 있다 */ }
-    }
-    frame.addEventListener('pointerup', endDrag);
-    frame.addEventListener('pointercancel', endDrag);
+    /* 한 손가락이면 옮기기, 두 손가락이면 벌려서 확대 */
+    var pts = new Map();
+    var pinch = null;
 
-    /* 확대: 틀 가운데를 기준으로 */
-    zoom.addEventListener('input', function () {
-      var next = parseInt(zoom.value, 10) / 100;
-      var cx = (F / 2 - ox) / (base * z);
-      var cy = (F / 2 - oy) / (base * z);
-      z = next;
-      ox = F / 2 - cx * base * z;
-      oy = F / 2 - cy * base * z;
-      draw();
+    function two() {
+      var a = [];
+      pts.forEach(function (v) { a.push(v); });
+      return a;
+    }
+
+    function gap(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function mid(a, b) {
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+
+    frame.addEventListener('pointerdown', function (e) {
+      frame.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        var p = two();
+        pinch = { gap: gap(p[0], p[1]), mid: mid(p[0], p[1]) };
+      }
     });
+
+    frame.addEventListener('pointermove', function (e) {
+      var prev = pts.get(e.pointerId);
+      if (!prev) return;
+      var now = { x: e.clientX, y: e.clientY };
+      pts.set(e.pointerId, now);
+
+      if (pts.size === 1) {
+        ox += now.x - prev.x;
+        oy += now.y - prev.y;
+        draw();
+        return;
+      }
+
+      if (pts.size >= 2 && pinch) {
+        var p = two();
+        var g = gap(p[0], p[1]);
+        var m = mid(p[0], p[1]);
+        if (pinch.gap > 0) zoomAbout(z * (g / pinch.gap), m.x, m.y);
+        ox += m.x - pinch.mid.x;        // 두 손가락을 함께 옮기면 사진도 따라간다
+        oy += m.y - pinch.mid.y;
+        pinch = { gap: g, mid: m };
+        draw();
+      }
+    });
+
+    function liftPointer(e) {
+      pts.delete(e.pointerId);
+      try { frame.releasePointerCapture(e.pointerId); } catch (err) { /* 이미 놓였을 수 있다 */ }
+      if (pts.size < 2) pinch = null;
+    }
+    frame.addEventListener('pointerup', liftPointer);
+    frame.addEventListener('pointercancel', liftPointer);
+
+    /* 데스크톱에서는 휠로 확대 */
+    frame.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      zoomAbout(z * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX, e.clientY);
+      draw();
+    }, { passive: false });
 
     function done(blob) {
       URL.revokeObjectURL(url);

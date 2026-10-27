@@ -138,10 +138,11 @@ code {
 
 .btn-ink:hover { background: #000; border-color: transparent; }
 
-/* 입력칸과 같은 폭을 쓰는 버튼 */
+/* 입력칸과 같은 폭을 쓰는 직사각 버튼 */
 .btn-block {
   width: 100%;
   height: 46px;
+  border-radius: 0;
   justify-content: center;
   letter-spacing: 0.04em;
 }
@@ -228,21 +229,29 @@ code {
   pointer-events: none;
 }
 
-/* 커버 미리보기 겸 선택 버튼 */
+/* 등록·수정 폼: 상세 화면과 같은 폭 */
+.add-form {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  gap: 10px;
+}
+
+/* 커버 미리보기 겸 선택 버튼. 상세 화면 커버와 같은 크기. */
 .cover-pick {
-  justify-self: center;
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 8px;
   padding: 0;
   overflow: hidden;
-  border: 1px dashed var(--line);
-  border-radius: 16px;
-  background: var(--bg-soft);
+  border: 0;
+  border-radius: 18px;
+  background: var(--bg-card);
   cursor: pointer;
 }
 
-.cover-pick:hover { border-color: #c8cfd9; }
+.cover-pick:hover { filter: brightness(0.98); }
 
 .cover-pick img {
   width: 100%;
@@ -258,7 +267,7 @@ code {
   place-items: center;
 }
 
-.cover-ph svg { width: 40px; height: 40px; fill: #b4bcc8; }
+.cover-ph svg { width: 56px; height: 56px; fill: #aab2bf; }
 
 .form { display: grid; gap: 18px; }
 
@@ -721,38 +730,31 @@ code {
 
 /* ---------- 로그인 · 관리자 ---------- */
 
-/* 아이콘·입력칸·버튼 한 묶음을 화면 가운데에 */
+/* 입력칸·버튼 묶음을 화면 가운데에 */
 .auth {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 12px;
-  padding: 0 18px;          /* 양옆 여백 */
+  padding: 0 80px;          /* 양옆 여백 */
 }
 
-.auth-logo {
-  display: grid;
-  place-items: center;
-  margin-bottom: 2px;
-}
+/* 화면 끝에서 정확히 80px 이 되도록 바깥 여백은 뺀다 */
+body[data-route="login"] .wrap { padding-left: 0; padding-right: 0; }
 
-.auth-logo img {
-  width: min(150px, 42vw);
-  height: auto;
-}
-
-/* 라벨 없이 입력칸만. 테두리 없는 알약 모양. */
+/* 라벨 없는 직사각 입력칸 (로그인·등록 공용) */
 .login-form { gap: 10px; }
 
-.login-form .input {
+.flat-input {
+  height: 46px;
   border: 0;
-  border-radius: 999px;
-  padding: 0 20px;
+  border-radius: 0;
+  padding: 0 16px;
 }
 
 /* 포커스는 아주 가는 짙은 회색 테두리로만 (자리가 밀리지 않게 안쪽 그림자) */
-.login-form .input:focus {
+.flat-input:focus {
   outline: none;
   border: 0;
   box-shadow: inset 0 0 0 1px #4a515f;
@@ -869,6 +871,13 @@ select.input {
   transform-origin: 0 0;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.crop-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--fg-dim);
+  text-align: center;
 }
 
 .crop-actions { display: flex; gap: 10px; }
