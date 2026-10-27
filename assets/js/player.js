@@ -323,6 +323,21 @@
     else seekTo(0);
   }
 
+  /** 재생을 멈추고 아무 곡도 선택하지 않은 상태로 되돌린다(예: 재생 중인 곡 삭제) */
+  function stop() {
+    if (mode === 'youtube' && yt && ytPlayerReady) { try { yt.pauseVideo(); } catch (e) {} }
+    if (mode === 'soundcloud' && sc && scLoaded) { try { sc.pause(); } catch (e) {} }
+    pending = null;
+    playing = false;
+    index = -1;
+    playingId = null;
+    position = 0;
+    duration = 0;
+    error = '';
+    embeds.hidden = true;
+    emit();
+  }
+
   function seekTo(sec) {
     position = Math.max(0, Math.min(sec, duration || sec));
     if (mode === 'youtube' && yt && ytPlayerReady) yt.seekTo(position, true);
@@ -380,6 +395,7 @@
     toggle: toggle,
     next: next,
     prev: prev,
+    stop: stop,
     seekTo: seekTo,
     setVolume: setVolume,
     state: state,

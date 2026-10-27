@@ -55,10 +55,6 @@
     return String(track.title || track.artist || '?').trim().slice(0, 2).toUpperCase();
   }
 
-  function providerName(track) {
-    return track.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
-  }
-
   function trackHref(track) {
     return '#/track/' + encodeURIComponent(track.id);
   }
@@ -200,13 +196,13 @@
     topLeft.textContent = '';
     topRight.textContent = '';
 
-    if (r.name === 'add') {
-      // 등록 화면에서는 가운데가 제목 역할을 하고, 링크가 아니다.
-      brand.textContent = 'add';
-      brand.removeAttribute('href');
-    } else {
+    // 서비스 이름은 목록에서만 보인다.
+    if (r.name === 'list') {
       brand.textContent = 'ummjjutube';
       brand.href = '#/';
+    } else {
+      brand.textContent = '';
+      brand.removeAttribute('href');
     }
 
     if (r.name === 'list') {
@@ -220,13 +216,91 @@
 
     topLeft.appendChild(backButton());
 
-    if (r.name === 'track' && track) {
-      var out = el('a', 'btn-text', providerName(track));
-      out.href = track.source_url;
-      out.target = '_blank';
-      out.rel = 'noopener noreferrer';
-      topRight.appendChild(out);
+    if (r.name === 'track' && track) topRight.appendChild(trackMenu(track));
+  }
+
+  /* ---------- 상세 화면의 수정·삭제 메뉴 ---------- */
+
+  function trackMenu(track) {
+    var wrap = el('div', 'menu');
+
+    var btn = el('button', 'icon-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '더보기');
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>';
+
+    var pop = el('div', 'menu-pop');
+    pop.setAttribute('role', 'menu');
+    pop.hidden = true;
+
+    var edit = el('button', 'menu-item', '수정');
+    edit.type = 'button';
+    edit.setAttribute('role', 'menuitem');
+    edit.addEventListener('click', function () {
+      close();
+      location.hash = '#/edit/' + encodeURIComponent(track.id);
+    });
+
+    var del = el('button', 'menu-item danger', '삭제');
+    del.type = 'button';
+    del.setAttribute('role', 'menuitem');
+    del.addEventListener('click', function () {
+      close();
+      removeTrack(track);
+    });
+
+    pop.appendChild(edit);
+    pop.appendChild(del);
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+
+    function onDocDown(e) {
+      if (!wrap.contains(e.target)) close();
     }
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+    function open() {
+      pop.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      document.addEventListener('pointerdown', onDocDown);
+      document.addEventListener('keydown', onKey);
+    }
+    function close() {
+      pop.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onDocDown);
+      document.removeEventListener('keydown', onKey);
+    }
+
+    btn.addEventListener('click', function () {
+      if (pop.hidden) open();
+      else close();
+    });
+    teardown.push(close);
+
+    return wrap;
+  }
+
+  async function removeTrack(track) {
+    var name = track.title || '이 곡';
+    if (!window.confirm('“' + name + '”을(를) 삭제할까요?\n되돌릴 수 없습니다.')) return;
+
+    try {
+      await window.DB.deleteTrack(track.id);
+    } catch (err) {
+      window.alert('삭제하지 못했습니다.\n' + (err && err.message ? err.message : '알 수 없는 오류'));
+      return;
+    }
+
+    var s = window.Player.state();
+    if (s.track && String(s.track.id) === String(track.id)) window.Player.stop();
+    tracksCache = null;
+    location.hash = '#/';
   }
 
   /* ---------- 목록 화면 ---------- */
@@ -432,12 +506,40 @@
     });
   }
 
+  async function renderEdit(id) {
+    view.appendChild(document.getElementById('tpl-add').content.cloneNode(true));
+
+    var tracks = [];
+    try {
+      tracks = await getTracks();
+    } catch (err) { /* 아래에서 '없는 곡' 으로 처리 */ }
+    if (route().name !== 'edit') return;
+
+    var track = tracks.filter(function (t) { return String(t.id) === String(id); })[0];
+    if (!track) {
+      view.textContent = '';
+      view.appendChild(el('p', 'state', '없는 곡입니다.'));
+      view.classList.add('is-centered');
+      return;
+    }
+
+    window.AddView.mount({
+      track: track,
+      onSaved: function () {
+        tracksCache = null;
+        location.hash = '#/track/' + encodeURIComponent(track.id);
+      },
+    });
+  }
+
   /* ---------- 라우팅 ---------- */
 
   function route() {
     var h = (location.hash || '').replace(/^#/, '') || '/';
     var m = /^\/track\/(.+)$/.exec(h);
     if (m) return { name: 'track', id: decodeURIComponent(m[1]) };
+    m = /^\/edit\/(.+)$/.exec(h);
+    if (m) return { name: 'edit', id: decodeURIComponent(m[1]) };
     if (h === '/add') return { name: 'add' };
     return { name: 'list' };
   }
@@ -460,7 +562,7 @@
 
     var r = route();
     document.body.dataset.route = r.name;
-    view.className = 'wrap' + (r.name === 'add' ? ' narrow' : '');
+    view.className = 'wrap' + (r.name === 'add' || r.name === 'edit' ? ' narrow' : '');
     view.textContent = '';
     if (r.name !== 'track') document.title = 'ummjjutube';
 
@@ -468,6 +570,7 @@
     renderBar(window.Player.state());
 
     if (r.name === 'track') await renderTrack(r.id);
+    else if (r.name === 'edit') await renderEdit(r.id);
     else if (r.name === 'add') renderAdd();
     else await renderList();
 

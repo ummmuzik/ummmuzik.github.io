@@ -36,7 +36,17 @@ create policy "tracks: public insert"
   on public.tracks for insert
   with check (true);
 
--- 수정/삭제는 아무에게도 허용하지 않는다(정책 없음 = 거부).
+-- 상세 화면의 수정·삭제. insert 와 같은 수준으로 열어 둔다.
+drop policy if exists "tracks: public update" on public.tracks;
+create policy "tracks: public update"
+  on public.tracks for update
+  using (true)
+  with check (true);
+
+drop policy if exists "tracks: public delete" on public.tracks;
+create policy "tracks: public delete"
+  on public.tracks for delete
+  using (true);
 
 -- ---------------------------------------------------------------------------
 -- 커버 이미지 저장소 (등록 페이지의 image 업로드)

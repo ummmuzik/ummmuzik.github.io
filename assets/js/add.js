@@ -1,4 +1,5 @@
-/* 등록 화면: 링크 검증 + 커버 사진 업로드 + 저장 */
+/* 등록·수정 화면: 링크 검증 + 커버 사진 업로드 + 저장
+   opts.track 이 있으면 그 곡을 고치는 수정 모드로 동작한다. */
 (function () {
   'use strict';
 
@@ -7,6 +8,7 @@
 
   function mount(opts) {
     opts = opts || {};
+    var editing = opts.track || null;
 
     var form = document.getElementById('form');
     var fUrl = document.getElementById('f-url');
@@ -18,8 +20,14 @@
     var coverImg = document.getElementById('cover-img');
     var coverPh = document.getElementById('cover-ph');
 
-    var picked = null;       // 선택한 사진 (File)
+    var picked = null;       // 새로 고른 사진 (File)
     var objectUrl = null;    // 미리보기용 blob URL
+
+    if (editing) {
+      fUrl.value = editing.source_url || '';
+      fTitle.value = editing.title || '';
+      fArtist.value = editing.artist || '';
+    }
 
     function setNotice(kind, html) {
       notice.className = 'notice notice-' + kind;
@@ -51,9 +59,10 @@
       }
     }
 
-    /** 고른 사진이 있으면 그것을, 없으면 유튜브 썸네일을 보여 준다 */
+    /** 새로 고른 사진 > (수정 모드면) 지금 커버 > 유튜브 썸네일 순으로 보여 준다 */
     function previewCover() {
       if (picked) return showPreview(objectUrl);
+      if (editing && editing.cover_url) return showPreview(editing.cover_url);
       showPreview(window.Sources.fallbackCover(parsed()));
     }
 
@@ -164,7 +173,12 @@
       if (!title) { setNotice('bad', '제목을 입력해 주세요.'); fTitle.focus(); return; }
       if (!artist) { setNotice('bad', '아티스트를 입력해 주세요.'); fArtist.focus(); return; }
 
+      // 새 사진을 고르지 않았다면 수정 모드에서는 쓰던 커버를 그대로 둔다.
+      // 단, 유튜브 썸네일을 쓰고 있었다면 바뀐 링크에 맞춰 다시 잡는다.
       var cover = window.Sources.fallbackCover(p);
+      if (editing && editing.cover_url && !/i\.ytimg\.com/.test(editing.cover_url)) {
+        cover = editing.cover_url;
+      }
 
       try {
         if (picked) {
@@ -185,15 +199,23 @@
       }
 
       busy(true, '저장 중…');
+      var row = {
+        title: title,
+        artist: artist,
+        cover_url: cover || null,
+        source_url: p.source_url,
+        provider: p.provider,
+        provider_id: p.provider_id,
+      };
+
       try {
-        await window.DB.addTrack({
-          title: title,
-          artist: artist,
-          cover_url: cover || null,
-          source_url: p.source_url,
-          provider: p.provider,
-          provider_id: p.provider_id,
-        });
+        if (editing) {
+          await window.DB.updateTrack(editing.id, row);
+          if (typeof opts.onSaved === 'function') opts.onSaved();
+          return;   // 호출한 쪽에서 상세 화면으로 돌려보낸다
+        }
+
+        await window.DB.addTrack(row);
         if (typeof opts.onSaved === 'function') opts.onSaved();
         setNotice('ok',
           '<strong>저장했습니다.</strong> <a href="#/">목록에서 확인</a>하거나 계속 등록할 수 있습니다.');
@@ -211,6 +233,8 @@
         busy(false);
       }
     });
+
+    previewCover();
 
     if (!window.DB.isConfigured()) {
       setNotice('warn',

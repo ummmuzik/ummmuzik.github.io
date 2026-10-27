@@ -46,6 +46,25 @@
     return res.data;
   }
 
+  /** 트랙 한 건 수정 */
+  async function updateTrack(id, patch) {
+    var res = await table().update(patch).eq('id', id).select();
+    if (res.error) throw res.error;
+    if (!res.data || !res.data.length) {
+      throw new Error('수정된 행이 없습니다 (RLS update 정책을 확인해 주세요).');
+    }
+    return res.data[0];
+  }
+
+  /** 트랙 한 건 삭제 */
+  async function deleteTrack(id) {
+    var res = await table().delete().eq('id', id).select();
+    if (res.error) throw res.error;
+    if (!res.data || !res.data.length) {
+      throw new Error('삭제된 행이 없습니다 (RLS delete 정책을 확인해 주세요).');
+    }
+  }
+
   /**
    * 커버 이미지를 Storage 에 올리고 공개 URL 을 돌려준다.
    * 파일 이름은 쓰지 않고 새로 만든다(한글·공백·중복 회피).
@@ -67,6 +86,8 @@
     isConfigured: isConfigured,
     listTracks: listTracks,
     addTrack: addTrack,
+    updateTrack: updateTrack,
+    deleteTrack: deleteTrack,
     uploadCover: uploadCover,
   };
 })();

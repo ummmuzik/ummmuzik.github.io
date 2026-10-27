@@ -60,7 +60,7 @@ code {
 .top {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 60;
   flex: none;
   /* 가운데 열을 양쪽 1fr 이 똑같이 밀어내므로, 브랜드는 오른쪽 버튼 폭과
      무관하게 화면 전체 폭의 정중앙에 온다. */
@@ -442,11 +442,11 @@ code {
 .play-btn {
   width: 44px;
   height: 44px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: #7c8696;
+  color: #fff;
 }
 
-.play-btn:hover { filter: brightness(1.05); background: var(--accent); }
+.play-btn:hover { filter: brightness(1.05); background: #7c8696; }
 .play-btn svg { width: 22px; height: 22px; }
 .play-btn .i-pause { display: none; }
 .play-btn.is-playing .i-play { display: none; }
@@ -471,10 +471,27 @@ code {
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
+  width: 100%;
+  margin: 0;              /* 브라우저 기본 여백 때문에 커버와 폭이 어긋나지 않게 */
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--accent) 0 var(--fill, 0%), #dfe3e9 var(--fill, 0%) 100%);
+  background: linear-gradient(to right, var(--fg) 0 var(--fill, 0%), #dfe3e9 var(--fill, 0%) 100%);
   cursor: pointer;
+}
+
+/* 손잡이(원형)를 감추되, 끌어서 옮기는 건 그대로 되게 투명하게만 만든다 */
+.range.bare::-webkit-slider-thumb {
+  background: transparent;
+  box-shadow: none;
+  width: 18px;
+  height: 18px;
+}
+
+.range.bare::-moz-range-thumb {
+  background: transparent;
+  box-shadow: none;
+  width: 18px;
+  height: 18px;
 }
 
 .range.vol {
@@ -564,21 +581,23 @@ code {
 
 /* ---------- 상세 화면 ---------- */
 
+/* 커버·제목·재생 바가 모두 같은 폭(--col)을 쓴다 */
 .track {
+  --col: min(460px, 100%);
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  text-align: center;
+  gap: 18px;
   padding: 8px 0 20px;
 }
+
+.track > * { width: var(--col); }
 
 .track-cover {
   position: relative;
   z-index: 41;          /* 전역 iframe 바로 위 */
-  width: min(340px, 74vw);
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 18px;
@@ -593,7 +612,7 @@ code {
   display: block;
 }
 
-.track-meta { display: grid; gap: 4px; max-width: min(420px, 88vw); }
+.track-meta { display: grid; gap: 4px; text-align: left; }
 
 .track-title {
   margin: 0;
@@ -605,22 +624,56 @@ code {
 
 .track-artist { margin: 0; color: var(--fg-dim); font-size: 14px; }
 
-.track-seek {
+.track-seek { display: grid; gap: 7px; }
+
+.track-times {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: min(420px, 88vw);
+  justify-content: space-between;
 }
 
-.track-controls { display: flex; align-items: center; gap: 18px; }
+.track-times .time { min-width: 0; text-align: left; }
+
+.track-controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
 
 .track-controls .play-btn { width: 62px; height: 62px; }
 .track-controls .play-btn svg { width: 28px; height: 28px; }
 .track-controls .icon-btn svg { width: 24px; height: 24px; }
 
-.track-status { margin: 0; min-height: 18px; font-size: 12.5px; color: var(--bad); }
+.track-status { margin: 0; min-height: 18px; font-size: 12.5px; color: var(--bad); text-align: center; }
+
+/* ---------- 수정·삭제 메뉴 ---------- */
+
+.menu { position: relative; }
+
+.menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 128px;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+}
+
+.menu-item {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item:hover { background: var(--bg-soft); }
+.menu-item.danger { color: var(--bad); }
 
 @media (max-width: 760px) {
-  .track { gap: 16px; }
+  .track { gap: 14px; }
   .track-title { font-size: 19px; }
 }
