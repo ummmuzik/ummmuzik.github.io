@@ -368,9 +368,7 @@
 
     // 링크를 따라가기 전에 재생을 시작한다(클릭 제스처를 잃지 않도록).
     a.addEventListener('click', function () {
-      if (!window.Player.state().track || window.Player.state().track.id !== track.id) {
-        window.Player.playTrack(track, all);
-      }
+      window.Player.playNow(track, all);
     });
 
     return li;

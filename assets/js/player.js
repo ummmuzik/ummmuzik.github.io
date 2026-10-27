@@ -248,7 +248,6 @@
     position = 0;
     duration = 0;
     error = '';
-    embeds.hidden = false;
     updateMediaSession(track);
     emit();
 
@@ -290,15 +289,31 @@
     startTicker();
   }
 
-  /** 트랙을 재생한다. 같은 트랙이면 재생/일시정지를 토글한다. */
-  function playTrack(track, tracks) {
-    if (tracks) setQueue(tracks);
+  function indexOf(track) {
     var i = queue.findIndex(function (t) { return t.id === track.id; });
     if (i === -1) {
       queue = queue.concat([track]);
       i = queue.length - 1;
     }
+    return i;
+  }
+
+  /** 트랙을 재생한다. 같은 트랙이면 재생/일시정지를 토글한다. */
+  function playTrack(track, tracks) {
+    if (tracks) setQueue(tracks);
+    var i = indexOf(track);
     if (i === index) { toggle(); return; }
+    playAt(i);
+  }
+
+  /** 무조건 재생 쪽으로. 이미 그 곡이면 멈추지 않고 이어서 튼다. */
+  function playNow(track, tracks) {
+    if (tracks) setQueue(tracks);
+    var i = indexOf(track);
+    if (i === index) {
+      if (!playing) toggle();
+      return;
+    }
     playAt(i);
   }
 
@@ -334,7 +349,6 @@
     position = 0;
     duration = 0;
     error = '';
-    embeds.hidden = true;
     emit();
   }
 
@@ -376,7 +390,13 @@
   function init() {
     embeds = document.getElementById('embeds');
     scFrame = document.getElementById('sc-frame');
+    embeds.hidden = false;      // 화면 밖에 있을 뿐, 항상 살아 있어야 한다
     readVolume();
+
+    /* 유튜브 재생기를 미리 만들어 둔다.
+       첫 재생 때 API 를 받아 오면 그 사이에 클릭 제스처가 만료돼
+       모바일에서 자동 재생이 막힌다. */
+    setTimeout(function () { ensureYouTube(function () {}); }, 1200);
 
     // 스페이스바 = 재생/일시정지 (입력 중일 때는 제외)
     document.addEventListener('keydown', function (e) {
@@ -392,6 +412,7 @@
     init: init,
     setQueue: setQueue,
     playTrack: playTrack,
+    playNow: playNow,
     toggle: toggle,
     next: next,
     prev: prev,
