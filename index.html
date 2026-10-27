@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ummmuzik</title>
+<meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%A7%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="./">🎧 ummmuzik</a>
+  <nav class="top-nav">
+    <a class="btn btn-primary" href="./add.html">음악 등록</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div id="notice" class="notice" hidden></div>
+
+  <div class="toolbar">
+    <input id="q" class="input search" type="search" placeholder="제목 또는 아티스트 검색" autocomplete="off">
+    <span id="count" class="muted"></span>
+  </div>
+
+  <ul id="grid" class="grid" aria-busy="true"></ul>
+
+  <p id="state" class="state">목록을 불러오는 중…</p>
+</main>
+
+<!-- 하단 고정 플레이어 -->
+<section id="player" class="player" aria-label="플레이어" hidden>
+  <div class="p-media" id="p-media">
+    <div class="p-embeds">
+      <div id="yt-frame"></div>
+      <iframe id="sc-frame" title="SoundCloud 재생기" allow="autoplay" scrolling="no"></iframe>
+    </div>
+    <img id="p-cover" class="p-cover" alt="" hidden>
+  </div>
+
+  <div class="p-info">
+    <div class="p-title" id="p-title">—</div>
+    <div class="p-sub">
+      <span id="p-artist"></span>
+      <a id="p-source" href="#" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+    <div class="p-status" id="p-status" role="status"></div>
+  </div>
+
+  <div class="p-controls">
+    <button id="p-prev" class="icon-btn" type="button" aria-label="이전 트랙">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h2v12H7zm3 6 8-6v12z"/></svg>
+    </button>
+    <button id="p-toggle" class="icon-btn play-btn" type="button" aria-label="재생">
+      <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l12 7-12 7z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+    </button>
+    <button id="p-next" class="icon-btn" type="button" aria-label="다음 트랙">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6h2v12h-2zM6 6l8 6-8 6z"/></svg>
+    </button>
+  </div>
+
+  <div class="p-seek">
+    <span id="p-cur" class="time">0:00</span>
+    <input id="p-seek" class="range" type="range" min="0" max="1" value="0" step="1" aria-label="재생 위치">
+    <span id="p-dur" class="time">--:--</span>
+  </div>
+
+  <div class="p-extra">
+    <svg class="vol-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h3l5-4v14l-5-4H4zm11.5-.5a4 4 0 0 1 0 7v-2a2 2 0 0 0 0-3z"/></svg>
+    <input id="p-vol" class="range vol" type="range" min="0" max="100" value="80" aria-label="음량">
+    <button id="p-expand" class="icon-btn" type="button" aria-expanded="false" aria-label="영상 펼치기">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10V4h6V6H6v4zm10-6h6v6h-2V6h-4zm6 10v6h-6v-2h4v-4zm-10 6H4v-6h2v4h4z"/></svg>
+    </button>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="./assets/js/config.js"></script>
+<script src="./assets/js/sources.js"></script>
+<script src="./assets/js/db.js"></script>
+<script src="./assets/js/player.js"></script>
+<script src="./assets/js/list.js"></script>
+</body>
+</html>

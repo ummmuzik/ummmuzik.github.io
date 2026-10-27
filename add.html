@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>음악 등록 · ummmuzik</title>
+<meta name="description" content="유튜브 또는 사운드클라우드 링크로 트랙을 등록합니다">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%A7%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="./">🎧 ummmuzik</a>
+  <nav class="top-nav">
+    <a class="btn" href="./">목록으로</a>
+  </nav>
+</header>
+
+<main class="wrap narrow">
+  <h1 class="page-title">음악 등록</h1>
+  <div id="notice" class="notice" hidden></div>
+
+  <form id="form" class="form" novalidate>
+    <div class="field">
+      <label for="f-url">유튜브 / 사운드클라우드 링크 <span class="req">*</span></label>
+      <input id="f-url" class="input" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=… 또는 https://soundcloud.com/…" required>
+      <p id="url-hint" class="hint">유튜브(youtube.com, youtu.be)와 사운드클라우드 링크를 지원합니다.</p>
+    </div>
+
+    <div class="field">
+      <label for="f-title">제목 <span class="req">*</span></label>
+      <input id="f-title" class="input" type="text" maxlength="200" required>
+    </div>
+
+    <div class="field">
+      <label for="f-artist">아티스트 <span class="req">*</span></label>
+      <input id="f-artist" class="input" type="text" maxlength="200" required>
+    </div>
+
+    <div class="field">
+      <label for="f-cover">커버 이미지 URL</label>
+      <input id="f-cover" class="input" type="url" inputmode="url" placeholder="https://… (비우면 유튜브 썸네일을 사용합니다)">
+      <div class="cover-preview">
+        <img id="cover-img" alt="커버 미리보기" hidden>
+        <span id="cover-ph" class="cover-ph">미리보기</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="submit" class="btn btn-primary" type="submit">저장</button>
+      <a class="btn" href="./">취소</a>
+    </div>
+  </form>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="./assets/js/config.js"></script>
+<script src="./assets/js/sources.js"></script>
+<script src="./assets/js/db.js"></script>
+<script src="./assets/js/add.js"></script>
+</body>
+</html>
