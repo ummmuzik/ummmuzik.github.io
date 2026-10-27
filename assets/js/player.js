@@ -27,6 +27,8 @@
   var yt = null, ytFrame = null, ytLoading = false, ytPlayerReady = false;
   var sc = null, scLoading = false, scLoaded = false;
   var pending = null;
+  var wantPlay = false;    // 재생을 요청해 놓고 아직 시작되지 않은 상태
+  var retryTimers = [];
   var ticker = null;
   var listeners = [];
 
@@ -145,12 +147,18 @@
         onReady: function () {
           ytPlayerReady = true;
           try { yt.setVolume(volume); } catch (e) { /* 아직 준비 전일 수 있다 */ }
+          nudgePlay();
           emit();
         },
         onStateChange: function (e) {
           var S = window.YT.PlayerState;
           // 재생 여부는 추측하지 않고 재생기가 알려 주는 상태만 따른다.
-          if (e.data === S.PLAYING || e.data === S.BUFFERING) { playing = true; emit(); }
+          if (e.data === S.PLAYING || e.data === S.BUFFERING) {
+            playing = true;
+            wantPlay = false;
+            clearRetries();
+            emit();
+          }
           else if (e.data === S.PAUSED || e.data === S.UNSTARTED || e.data === S.CUED) {
             playing = false;
             emit();
@@ -174,6 +182,29 @@
     };
     if (window.YT && window.YT.Player) attachYouTube();
     else loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
+  }
+
+  /* 자동 재생이 거부됐을 때를 대비해 몇 번 더 눌러 본다(딜레이 허용) */
+
+  function clearRetries() {
+    retryTimers.forEach(clearTimeout);
+    retryTimers = [];
+  }
+
+  function nudgePlay() {
+    if (!wantPlay || playing) return;
+    if (mode === 'youtube' && yt && ytPlayerReady) {
+      try { yt.playVideo(); } catch (e) { /* 아직 준비 전 */ }
+    } else if (mode === 'soundcloud' && sc && scLoaded) {
+      try { sc.play(); } catch (e) { /* 위젯이 아직 */ }
+    }
+  }
+
+  function scheduleNudges() {
+    clearRetries();
+    [600, 1500, 2600].forEach(function (ms) {
+      retryTimers.push(setTimeout(nudgePlay, ms));
+    });
   }
 
   function playYouTube(track) {
@@ -232,11 +263,14 @@
         scLoaded = true;
         sc.setVolume(volume);
         sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
+        nudgePlay();
         emit();
         onReady(true);
       });
       sc.bind(window.SC.Widget.Events.PLAY, function () {
         playing = true;
+        wantPlay = false;
+        clearRetries();
         sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
         emit();
       });
@@ -272,6 +306,8 @@
     position = 0;
     duration = 0;
     error = '';
+    wantPlay = true;
+    scheduleNudges();
     updateMediaSession(track);
     emit();
 
@@ -339,6 +375,8 @@
 
   function toggle() {
     if (index < 0) return;
+    wantPlay = !playing;        // 사용자가 멈췄으면 더 눌러 보지 않는다
+    if (!wantPlay) clearRetries();
     if (mode === 'youtube' && yt && ytPlayerReady) {
       if (playing) yt.pauseVideo();
       else yt.playVideo();
@@ -360,6 +398,8 @@
 
   /** 재생을 멈추고 아무 곡도 선택하지 않은 상태로 되돌린다(예: 재생 중인 곡 삭제) */
   function stop() {
+    wantPlay = false;
+    clearRetries();
     if (mode === 'youtube' && yt && ytPlayerReady) { try { yt.pauseVideo(); } catch (e) {} }
     if (mode === 'soundcloud' && sc && scLoaded) { try { sc.pause(); } catch (e) {} }
     pending = null;

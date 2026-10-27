@@ -613,10 +613,13 @@ code {
 
 /* 화면이 바뀌어도 DOM 을 옮기지 않는다. 위치만 현재 화면의
    [data-embed-anchor] 박스에 맞춰 겹쳐 둔다(= 재생이 끊기지 않는다). */
+/* 화면 밖에 두면 유튜브가 "보이지 않는 플레이어" 로 보고 자동 재생을 거부할
+   수 있다. 그래서 화면 안(왼쪽 아래)에 두고 투명하게만 만든다. */
 .embeds {
   position: fixed;
-  left: -9999px;
-  top: 0;
+  left: 0;
+  bottom: 0;
+  top: auto;
   width: 56px;
   height: 56px;
   z-index: 40;

@@ -516,6 +516,11 @@
 
     // 이 곡을 재생 중인 상태로 들어왔다면, 곡이 바뀔 때 화면도 따라가게 한다.
     var followNext = isCurrent(window.Player.state());
+
+    // 상세로 들어오면 자동으로 튼다. 다른 곡이 울리고 있으면 가로채지 않는다.
+    var now = window.Player.state();
+    if (!isCurrent(now) && !now.playing) window.Player.playNow(track, tracks);
+
     paint(window.Player.state());
     var sub = window.Player.subscribe(paint);
     teardown.push(function () { window.Player.unsubscribe(sub); });
