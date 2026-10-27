@@ -110,11 +110,23 @@ $$;
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to authenticated;
 
--- 본인 것은 본인이, 전체는 관리자가 본다.
+-- 로그인한 회원이면 서로의 닉네임을 볼 수 있다(목록에 등록자를 띄운다).
 drop policy if exists "profiles: self or admin read" on public.profiles;
-create policy "profiles: self or admin read"
+drop policy if exists "profiles: authed read" on public.profiles;
+create policy "profiles: authed read"
   on public.profiles for select to authenticated
-  using (id = auth.uid() or public.is_admin());
+  using (true);
+
+-- ---------------------------------------------------------------------------
+-- 누가 등록했는지 (목록에 닉네임 표시)
+--   profiles 보다 뒤에 와야 하므로 여기서 붙인다.
+--   이미 있던 행은 비어 있어 닉네임이 표시되지 않는다.
+-- ---------------------------------------------------------------------------
+
+alter table public.tracks
+  add column if not exists created_by uuid
+    references public.profiles (id) on delete set null
+    default auth.uid();
 
 -- ---------------------------------------------------------------------------
 -- 첫 관리자 만들기 (한 번만)

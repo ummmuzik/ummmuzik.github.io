@@ -119,8 +119,6 @@
     prev: document.getElementById('p-prev'),
     next: document.getElementById('p-next'),
     seek: document.getElementById('p-seek'),
-    cur: document.getElementById('p-cur'),
-    dur: document.getElementById('p-dur'),
     vol: document.getElementById('p-vol'),
   };
   var barDragging = false;
@@ -135,10 +133,7 @@
     });
 
     barEl.seek.addEventListener('pointerdown', function () { barDragging = true; });
-    barEl.seek.addEventListener('input', function () {
-      barEl.cur.textContent = fmt(parseInt(barEl.seek.value, 10));
-      fill(barEl.seek);
-    });
+    barEl.seek.addEventListener('input', function () { fill(barEl.seek); });
     function end() {
       if (!barDragging) return;
       barDragging = false;
@@ -167,8 +162,6 @@
     barEl.status.textContent = s.error || '';
     barEl.toggle.classList.toggle('is-playing', s.playing);
     barEl.toggle.setAttribute('aria-label', s.playing ? '일시정지' : '재생');
-    barEl.cur.textContent = fmt(s.position);
-    barEl.dur.textContent = s.duration ? fmt(s.duration) : '--:--';
     if (!barDragging) {
       barEl.seek.max = String(Math.max(1, Math.floor(s.duration || 0)));
       barEl.seek.value = String(Math.floor(s.position || 0));
@@ -214,7 +207,7 @@
       topLeft.appendChild(whoMenu(auth));
       if (auth.isAdmin) topLeft.appendChild(adminLock());
       if (auth.signedIn) {
-        var add = el('a', 'icon-btn icon-accent');
+        var add = el('a', 'icon-btn');
         add.href = '#/add';
         add.setAttribute('aria-label', '음악 등록');
         add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
@@ -233,11 +226,6 @@
     var btn = el('button', 'who-btn');
     btn.type = 'button';
     btn.textContent = auth.nickname || auth.username || '계정';
-    btn.appendChild((function () {
-      var i = document.createElement('span');
-      i.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10h10l-5 6z"/></svg>';
-      return i.firstChild;
-    })());
 
     return dropdown(btn, 'to-left', [
       { label: 'SIGN OUT', onPick: function () { window.Auth.signOut(); } },
@@ -364,6 +352,7 @@
     a.appendChild(cover);
     a.appendChild(el('span', 'card-title', track.title || '제목 없음'));
     a.appendChild(el('span', 'card-artist', track.artist || '아티스트 미상'));
+    if (track.owner_nickname) a.appendChild(el('span', 'card-owner', track.owner_nickname));
     li.appendChild(a);
 
     // 링크를 따라가기 전에 재생을 시작한다(클릭 제스처를 잃지 않도록).

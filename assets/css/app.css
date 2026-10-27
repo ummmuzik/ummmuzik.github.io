@@ -109,9 +109,6 @@ code {
 
 .btn-text:hover { filter: brightness(0.92); }
 
-/* .icon-btn 의 color 선언보다 뒤에 와야 하므로 클래스를 겹쳐 쓴다 */
-.icon-btn.icon-accent { color: var(--accent); }
-.icon-accent svg,
 .icon-back svg { width: 22px; height: 22px; }
 
 .btn {
@@ -387,6 +384,16 @@ code {
   white-space: nowrap;
 }
 
+/* 등록한 사람 */
+.card-owner {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #98a0ae;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 
 /* ---------- 플레이어 ---------- */
@@ -399,15 +406,14 @@ code {
   display: grid;
   align-items: center;
   gap: 14px;
-  grid-template-columns: auto minmax(0, 1.2fr) auto minmax(180px, 1.6fr) auto;
-  grid-template-areas: "media info ctrl seek extra";
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "media info ctrl extra";
   padding: 10px 18px;
   min-height: var(--bar-h);
   /* 전역 iframe(.embeds, z-index 40) 위에 와야 한다 */
   z-index: 50;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
-  border-top: 1px solid var(--line);
   box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.07);
 }
 
@@ -496,11 +502,23 @@ code {
 .play-btn.is-playing .i-play { display: none; }
 .play-btn.is-playing .i-pause { display: block; }
 
+/* 본문과 플레이어 사이 경계선 자리에 놓인 재생 바.
+   손으로 잡기 쉽도록 높이는 16px 로 두고, 선은 가운데 3px 만 그린다. */
 .p-seek {
-  grid-area: seek;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  transform: translateY(-50%);
+}
+
+.range.edge {
+  height: 100%;
+  border-radius: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 3px;
 }
 
 .time {
@@ -575,13 +593,7 @@ code {
 /* ---------- 좁은 화면 ---------- */
 
 @media (max-width: 760px) {
-  :root { --bar-h: 118px; }
-
   .player {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      "media info ctrl extra"
-      "seek  seek seek seek";
     gap: 8px 10px;
     padding: 10px 14px 12px;
   }
@@ -741,7 +753,7 @@ body:not([data-route="track"]) .embeds { opacity: 0; }
   text-overflow: ellipsis;
 }
 
-.who-btn svg { width: 14px; height: 14px; fill: var(--fg-dim); flex: none; }
+
 
 /* ---------- 로그인 · 관리자 ---------- */
 

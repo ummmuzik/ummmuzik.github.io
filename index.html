@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=20">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=20">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=20">
-<link rel="manifest" href="./manifest.webmanifest?v=20">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=21">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=21">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=21">
+<link rel="manifest" href="./manifest.webmanifest?v=21">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=20">
+<link rel="stylesheet" href="./assets/css/app.css?v=21">
 </head>
 <body data-route="list">
 
@@ -62,10 +62,9 @@
     </button>
   </div>
 
+  <!-- 본문과 플레이어 사이 경계선이 곧 재생 바다 -->
   <div class="p-seek">
-    <span id="p-cur" class="time">0:00</span>
-    <input id="p-seek" class="range bare" type="range" min="0" max="1" value="0" step="1" aria-label="재생 위치">
-    <span id="p-dur" class="time">--:--</span>
+    <input id="p-seek" class="range bare edge" type="range" min="0" max="1" value="0" step="1" aria-label="재생 위치">
   </div>
 
   <div class="p-extra">
@@ -217,13 +216,13 @@
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=20"></script>
-<script src="./assets/js/sources.js?v=20"></script>
-<script src="./assets/js/db.js?v=20"></script>
-<script src="./assets/js/auth.js?v=20"></script>
-<script src="./assets/js/crop.js?v=20"></script>
-<script src="./assets/js/player.js?v=20"></script>
-<script src="./assets/js/add.js?v=20"></script>
-<script src="./assets/js/app.js?v=20"></script>
+<script src="./assets/js/config.js?v=21"></script>
+<script src="./assets/js/sources.js?v=21"></script>
+<script src="./assets/js/db.js?v=21"></script>
+<script src="./assets/js/auth.js?v=21"></script>
+<script src="./assets/js/crop.js?v=21"></script>
+<script src="./assets/js/player.js?v=21"></script>
+<script src="./assets/js/add.js?v=21"></script>
+<script src="./assets/js/app.js?v=21"></script>
 </body>
 </html>

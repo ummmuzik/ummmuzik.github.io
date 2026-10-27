@@ -30,13 +30,28 @@
     return getClient().from(cfg.TABLE || 'tracks');
   }
 
-  /** 최신순 트랙 목록 */
+  /**
+   * 최신순 트랙 목록. 등록자 닉네임을 함께 붙인다.
+   * created_by 컬럼이 아직 없거나 profiles 를 못 읽어도 목록은 나오게 둔다.
+   */
   async function listTracks() {
-    var res = await table()
-      .select('id, title, artist, cover_url, source_url, provider, provider_id, created_at')
-      .order('created_at', { ascending: false });
+    var res = await table().select('*').order('created_at', { ascending: false });
     if (res.error) throw res.error;
-    return res.data || [];
+    var rows = res.data || [];
+
+    var ids = [];
+    rows.forEach(function (t) {
+      if (t.created_by && ids.indexOf(t.created_by) === -1) ids.push(t.created_by);
+    });
+    if (!ids.length) return rows;
+
+    var who = await getClient().from('profiles').select('id, nickname').in('id', ids);
+    if (who.error) return rows;
+
+    var byId = {};
+    (who.data || []).forEach(function (p) { byId[p.id] = p.nickname; });
+    rows.forEach(function (t) { t.owner_nickname = byId[t.created_by] || ''; });
+    return rows;
   }
 
   /** 트랙 한 건 저장 */
