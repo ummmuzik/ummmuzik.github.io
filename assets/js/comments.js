@@ -264,6 +264,7 @@
         });
       });
 
+      list.hidden = total === 0;          // 비면 안내 문구가 가운데 오도록
       empty.hidden = total > 0;
       if (typeof opts.onChange === 'function') opts.onChange(total);
     }
@@ -274,6 +275,7 @@
         paint(rows);
         if (scrollToEnd) list.scrollTop = list.scrollHeight;
       } catch (err) {
+        list.hidden = true;
         empty.hidden = false;
         empty.textContent = '댓글을 불러오지 못했습니다. ' + (err && err.message ? err.message : '');
       }
@@ -290,6 +292,13 @@
       }
     }
     replyCancel.addEventListener('click', function () { setReply(null); });
+
+    // 글자가 있을 때만 보낼 수 있다(비었으면 아이콘이 회색)
+    function syncSend() {
+      send.disabled = !input.value.trim();
+    }
+    input.addEventListener('input', syncSend);
+    syncSend();
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -309,7 +318,7 @@
       } catch (err) {
         window.alert('댓글을 남기지 못했습니다.\n' + (err && err.message ? err.message : ''));
       } finally {
-        send.disabled = false;
+        syncSend();
         input.focus();
       }
     });

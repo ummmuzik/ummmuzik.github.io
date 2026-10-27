@@ -998,8 +998,11 @@ select.input {
   align-content: start;
 }
 
+/* 댓글이 없을 때: 영역 한가운데 */
 .cmt-empty {
-  flex: none;
+  flex: 1;
+  display: grid;
+  place-items: center;
   margin: 0;
   padding: 24px 20px;
   text-align: center;
@@ -1065,16 +1068,29 @@ select.input {
   cursor: pointer;
 }
 
-.cmt-row { display: flex; gap: 8px; }
-.cmt-row .flat-input { flex: 1; min-width: 0; }
+/* 보내기 아이콘은 입력칸 안쪽에 */
+.cmt-row { position: relative; }
+.cmt-input { width: 100%; padding-right: 48px; }
 
 .cmt-send {
-  flex: none;
-  width: auto;
-  height: 46px;
-  padding: 0 18px;
-  border-radius: 0;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #b4bcc8;              /* 입력 전에는 회색 */
+  cursor: pointer;
 }
+
+.cmt-send svg { width: 20px; height: 20px; fill: currentColor; }
+.cmt-send:not(:disabled) { color: var(--fg); }
+.cmt-send:disabled { cursor: default; }
 
 /* 창이 열려 있는 동안 뒤 화면은 스크롤되지 않게 */
 body.sheet-open { overflow: hidden; }
