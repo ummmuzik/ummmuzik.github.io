@@ -97,6 +97,39 @@
     return bucket.getPublicUrl(name).data.publicUrl;
   }
 
+  /* ---------- 댓글 ---------- */
+
+  /** 한 곡의 댓글. 먼저 단 것이 앞에 온다. 작성자 닉네임을 붙여 준다. */
+  async function listComments(trackId) {
+    var res = await getClient()
+      .from('comments')
+      .select('id, track_id, parent_id, author, body, created_at')
+      .eq('track_id', trackId)
+      .order('created_at', { ascending: true });
+    if (res.error) throw res.error;
+    var rows = res.data || [];
+
+    var ids = [];
+    rows.forEach(function (c) {
+      if (c.author && ids.indexOf(c.author) === -1) ids.push(c.author);
+    });
+    if (!ids.length) return rows;
+
+    var who = await getClient().from('profiles').select('id, nickname').in('id', ids);
+    if (who.error) return rows;
+
+    var byId = {};
+    (who.data || []).forEach(function (p) { byId[p.id] = p.nickname; });
+    rows.forEach(function (c) { c.author_nickname = byId[c.author] || ''; });
+    return rows;
+  }
+
+  async function addComment(row) {
+    var res = await getClient().from('comments').insert(row).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  }
+
   /* ---------- 회원 ---------- */
 
   /** 회원 목록. RLS 상 관리자만 전체를 볼 수 있다. */
@@ -134,6 +167,8 @@
     createAccount: createAccount,
     isConfigured: isConfigured,
     listTracks: listTracks,
+    listComments: listComments,
+    addComment: addComment,
     addTrack: addTrack,
     updateTrack: updateTrack,
     deleteTrack: deleteTrack,

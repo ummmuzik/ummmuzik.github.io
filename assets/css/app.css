@@ -673,17 +673,40 @@ body:not([data-route="track"]) .embeds { opacity: 0; }
   display: block;
 }
 
-.track-meta { display: grid; gap: 4px; text-align: left; }
+/* 제목·아티스트는 왼쪽, 댓글 버튼은 오른쪽 끝 */
+.track-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.track-texts { min-width: 0; display: grid; gap: 3px; }
 
 .track-title {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
 
-.track-artist { margin: 0; color: var(--fg-dim); font-size: 18px; }
+/* 제목 옆 > : 원본(유튜브·사운드클라우드 앱)으로 */
+.track-out {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 2px;
+  padding: 2px;
+}
+
+.track-out svg { width: 20px; height: 20px; fill: #aab2bf; }
+.track-out:hover svg { fill: var(--fg-dim); }
+
+.track-cmt { flex: none; }
+.track-cmt svg { width: 22px; height: 22px; fill: var(--fg); }
+
+.track-artist { margin: 0; color: var(--fg-dim); font-size: 16px; }
 
 .track-seek { display: grid; gap: 7px; }
 
@@ -911,3 +934,133 @@ select.input {
 
 .crop-actions { display: flex; gap: 10px; }
 .crop-actions .btn { flex: 1; justify-content: center; }
+
+/* ---------- 댓글 창 ---------- */
+
+.sheet-back {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(10, 14, 20, 0.45);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  height: 78dvh;
+  max-height: 78dvh;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-title { font-size: 14px; font-weight: 700; }
+
+/* 댓글만 스크롤된다 */
+.cmt-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+  margin: 0;
+  padding: 14px 20px 8px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.cmt-empty {
+  flex: none;
+  margin: 0;
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: 13.5px;
+}
+
+.cmt { display: grid; gap: 3px; }
+.cmt.is-reply { padding-left: 22px; }      /* 답글은 들여쓰기만 */
+
+.cmt-head { display: flex; align-items: baseline; gap: 8px; }
+.cmt-who { font-size: 13px; font-weight: 700; }
+.cmt-when { font-size: 11.5px; color: #98a0ae; }
+
+.cmt-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cmt-reply {
+  justify-self: start;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cmt-reply:hover { color: var(--fg); }
+
+/* 입력칸은 맨 아래 고정 */
+.cmt-form {
+  flex: none;
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+
+.cmt-reply-to {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 8px;
+  font-size: 12.5px;
+  color: var(--fg-dim);
+}
+
+.cmt-reply-cancel {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 12.5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cmt-row { display: flex; gap: 8px; }
+.cmt-row .flat-input { flex: 1; min-width: 0; }
+
+.cmt-send {
+  flex: none;
+  width: auto;
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 0;
+}
+
+/* 창이 열려 있는 동안 뒤 화면은 스크롤되지 않게 */
+body.sheet-open { overflow: hidden; }

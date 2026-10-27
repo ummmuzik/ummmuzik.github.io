@@ -8,7 +8,7 @@ GitHub Pages 로 호스팅하고, 데이터는 Supabase(Postgres) 에 저장합�
 | 주소 | 화면 |
 | --- | --- |
 | `#/` | 목록. 커버·제목·아티스트 카드. 누르면 재생이 시작되고 상세로 이동합니다. |
-| `#/track/<id>` | 상세. 큰 커버, 제목, 아티스트, 재생 바와 버튼. 좌측 상단은 뒤로, 우측 상단 ⋮ 메뉴에서 수정·삭제. |
+| `#/track/<id>` | 상세. 큰 커버, 제목, 아티스트, 재생 바와 버튼. 좌측 상단은 뒤로, 우측 상단 ⋮ 메뉴에서 수정·삭제. 제목 옆 › 는 원본(유튜브·사운드클라우드 앱)으로, 오른쪽 말풍선은 댓글. |
 | `#/edit/<id>` | 수정. 등록과 같은 폼에 기존 값이 채워집니다. |
 | `#/add` | 등록. url / title / artist / image 를 입력해 저장합니다. |
 | `#/login` | 로그인. 이미 로그인했으면 계정과 로그아웃이 보입니다. |
@@ -181,7 +181,8 @@ assets/js/auth.js       로그인 상태 (아이디 ↔ 이메일 변환)
 assets/js/player.js     재생 엔진 (유튜브 + 사운드클라우드, 화면과 분리)
 assets/js/app.js        라우터 + 목록·상세·로그인·관리자 화면 + 하단 플레이어
 assets/js/add.js        등록·수정 화면
-supabase/schema.sql     테이블 + RLS 정책 + covers 버킷 + profiles
+assets/js/comments.js   곡별 댓글 창
+supabase/schema.sql     테이블 + RLS 정책 + covers 버킷 + profiles + comments
 supabase/functions/admin-create-user/
                         관리자만 호출하는 계정 생성 Edge Function
 ```

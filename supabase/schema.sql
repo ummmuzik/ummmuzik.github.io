@@ -142,3 +142,37 @@ alter table public.tracks
 --   from auth.users
 --  where email = 'admin@ummjjutube.local'
 -- on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- 댓글
+--   답글은 parent_id 로 한 단계만. 로그인한 회원이면 모두 읽고 쓸 수 있고,
+--   지우는 건 본인(또는 관리자)만.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.comments (
+  id         uuid primary key default gen_random_uuid(),
+  track_id   uuid not null references public.tracks (id) on delete cascade,
+  parent_id  uuid references public.comments (id) on delete cascade,
+  author     uuid not null references public.profiles (id) on delete cascade default auth.uid(),
+  body       text not null check (length(btrim(body)) > 0 and length(body) <= 1000),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists comments_track_idx on public.comments (track_id, created_at);
+
+alter table public.comments enable row level security;
+
+drop policy if exists "comments: authed read" on public.comments;
+create policy "comments: authed read"
+  on public.comments for select to authenticated
+  using (true);
+
+drop policy if exists "comments: authed insert" on public.comments;
+create policy "comments: authed insert"
+  on public.comments for insert to authenticated
+  with check (author = auth.uid());
+
+drop policy if exists "comments: own delete" on public.comments;
+create policy "comments: own delete"
+  on public.comments for delete to authenticated
+  using (author = auth.uid() or public.is_admin());
