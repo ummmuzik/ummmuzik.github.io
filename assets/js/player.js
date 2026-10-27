@@ -24,12 +24,11 @@
   var volume = 80;
   var error = '';
 
-  var yt = null, ytFrame = null, ytLoading = false, ytPlayerReady = false;
+  var yt = null, ytFrame = null, ytBuilding = false, ytPlayerReady = false;
   var sc = null, scLoading = false, scLoaded = false;
   var pending = null;
   var wantPlay = false;    // 재생을 요청해 놓고 아직 시작되지 않은 상태
   var retryTimers = [];
-  var ytPending = [];      // API 준비를 기다리는 일들
   var gestureArmed = false;
   var ticker = null;
   var listeners = [];
@@ -67,10 +66,7 @@
   function clearRetries() {
     retryTimers.forEach(clearTimeout);
     retryTimers = [];
-    if (gestureArmed) {
-      document.removeEventListener('pointerdown', onGesture, true);
-      gestureArmed = false;
-    }
+    disarmGesture();
   }
 
   function nudgePlay() {
@@ -83,15 +79,24 @@
   }
 
   function onGesture() {
-    document.removeEventListener('pointerdown', onGesture, true);
-    gestureArmed = false;
+    disarmGesture();
     nudgePlay();
   }
 
+  function disarmGesture() {
+    if (!gestureArmed) return;
+    gestureArmed = false;
+    document.removeEventListener('click', onGesture);
+    document.removeEventListener('touchend', onGesture);
+  }
+
+  /* 거품 단계에서 듣는다. 화면의 다른 처리가 끝난 뒤, 그러나 아직 같은
+     사용자 동작 안에서 재생을 눌러야 아이폰이 허용한다. */
   function armGestureRetry() {
     if (gestureArmed) return;
     gestureArmed = true;
-    document.addEventListener('pointerdown', onGesture, true);
+    document.addEventListener('click', onGesture);
+    document.addEventListener('touchend', onGesture);
   }
 
   function scheduleNudges() {
@@ -158,20 +163,15 @@
   /* ---------- 유튜브 ---------- */
 
   /*
-   * 아이폰은 "부모 창에서 일어난 터치" 안에서 재생 명령이 나가야만 iframe
-   * 재생을 허용한다. 그래서 화면을 처음 건드리는 순간 빈 재생기를 미리 띄워
-   * 두고(영상이 없으니 광고도 없다), 카드를 누른 그 자리에서 loadVideoById 를
-   * 부른다. 페이지를 열기만 해서는 유튜브에 아무 요청도 가지 않는다.
+   * 재생기는 IFrame API 로 한 번만 만든다. 직접 만든 iframe 과 API 가 만든
+   * 재생기를 섞으면 서로 덮어써서 아무것도 동작하지 않는다.
+   *
+   * 아이폰은 "부모 창에서 방금 일어난 터치" 안에서 재생 명령이 나가야만
+   * iframe 재생을 허용한다. 그래서 영상 없는 빈 재생기를 미리 띄워 두고
+   * (영상이 없으니 광고도 없다), 카드를 누른 그 자리에서 영상을 건다.
    */
 
-  var YT_VARS = {
-    controls: 0,
-    disablekb: 1,
-    playsinline: 1,
-    rel: 0,
-    modestbranding: 1,
-    iv_load_policy: 3,
-  };
+  var pendingVideo = null;   // 재생기가 준비되면 걸 영상
 
   function ytEvents() {
     return {
@@ -179,6 +179,9 @@
         ytPlayerReady = true;
         ytFrame = document.getElementById('yt-frame');
         try { yt.setVolume(volume); } catch (e) { /* 아직 준비 전일 수 있다 */ }
+        if (pendingVideo && wantPlay) {
+          try { yt.loadVideoById(pendingVideo); } catch (e) { /* 다음 재시도에 맡긴다 */ }
+        }
         nudgePlay();
         emit();
       },
@@ -204,86 +207,62 @@
     };
   }
 
-  function ytEmbedUrl(id) {
-    return (
-      YT_HOST + '/embed/' + encodeURIComponent(id) +
-      '?autoplay=1&enablejsapi=1&controls=0&disablekb=1&playsinline=1' +
-      '&rel=0&modestbranding=1&iv_load_policy=3' +
-      '&origin=' + encodeURIComponent(location.origin)
-    );
-  }
+  /** API 를 받아 재생기를 만든다. 여러 번 불러도 하나만 만들어진다. */
+  function ensureYouTube() {
+    if (yt || ytBuilding) return;
+    ytBuilding = true;
 
-  /** API 가 준비되면 할 일을 걸어 둔다 */
-  function loadYouTubeApi(then) {
-    ytPending.push(then);
-    if (window.YT && window.YT.Player) return flushYtPending();
-    if (ytLoading) return;
-    ytLoading = true;
+    function build() {
+      if (yt) return;
+      var ph = document.getElementById('yt-frame');
+      if (!ph) return;
+      yt = new window.YT.Player(ph, {
+        host: YT_HOST,          // 쿠키를 덜 심는 쪽
+        width: '100%',
+        height: '100%',
+        playerVars: {
+          controls: 0,
+          disablekb: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          origin: location.origin,
+        },
+        events: ytEvents(),
+      });
+    }
+
+    if (window.YT && window.YT.Player) return build();
+
     var prevHook = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = function () {
       if (typeof prevHook === 'function') prevHook();
-      flushYtPending();
+      build();
     };
     loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
   }
 
-  function flushYtPending() {
-    var list = ytPending;
-    ytPending = [];
-    list.forEach(function (fn) { fn(); });
-  }
-
-  /** 영상 없이 빈 재생기만 띄워 둔다(미리 데우기) */
-  function buildEmptyPlayer() {
-    if (yt) return;
-    var ph = document.getElementById('yt-frame');
-    if (!ph) return;
-    yt = new window.YT.Player(ph, {
-      host: YT_HOST,
-      width: '100%',
-      height: '100%',
-      playerVars: YT_VARS,
-      events: ytEvents(),
-    });
-  }
-
-  /** 우리가 직접 만든 iframe 에 조작용 API 를 붙인다 */
-  function attachYouTube() {
-    if (yt || !ytFrame || !window.YT || !window.YT.Player) return;
-    yt = new window.YT.Player(ytFrame, { events: ytEvents() });
-  }
-
-  /** 화면을 처음 건드릴 때 한 번. 이때부터 유튜브에 접속한다. */
+  /** 화면을 처음 건드릴 때 한 번. 이때부터 유튜브에 접속한다(영상은 아직). */
   function warmUpYouTube() {
-    if (yt || ytFrame) return;
-    loadYouTubeApi(buildEmptyPlayer);
+    ensureYouTube();
   }
 
   function playYouTube(track) {
-    // 재생기가 이미 있으면 누른 그 자리에서 바로 튼다(아이폰도 이 경로로 된다).
+    pendingVideo = track.provider_id;
+
+    // 재생기가 이미 있으면 누른 그 자리에서 바로 건다(아이폰도 이 경로로 된다).
     if (yt && ytPlayerReady) {
       try {
         yt.loadVideoById(track.provider_id);
         yt.setVolume(volume);
         yt.playVideo();
-        return;
-      } catch (e) { /* 아래로 넘어간다 */ }
+      } catch (e) { /* 재시도에 맡긴다 */ }
+      return;
     }
 
-    // 아직 재생기가 없다: autoplay=1 iframe 을 직접 만든다.
-    if (!ytFrame) {
-      var ph = document.getElementById('yt-frame');
-      if (!ph) return;
-      ytFrame = document.createElement('iframe');
-      ytFrame.id = 'yt-frame';
-      ytFrame.title = 'YouTube 재생기';
-      ytFrame.allow = 'autoplay; encrypted-media; picture-in-picture';
-      ytFrame.setAttribute('frameborder', '0');
-      ph.replaceWith(ytFrame);
-    }
-    ytFrame.src = ytEmbedUrl(track.provider_id);
-    playing = true;     // 제스처 안에서 띄웠으니 재생될 것으로 본다
-    loadYouTubeApi(attachYouTube);
+    // 아직 만들어지는 중이면 준비되는 대로 onReady 에서 걸린다.
+    ensureYouTube();
   }
 
   /* ---------- 사운드클라우드 ---------- */
@@ -513,7 +492,9 @@
     embeds.hidden = false;      // 화면 밖에 있을 뿐, 항상 살아 있어야 한다
     readVolume();
 
-    // 화면을 처음 건드릴 때 빈 재생기를 띄워 둔다(페이지 로드만으로는 접속 안 함)
+    /* 빈 재생기를 미리 띄워 둔다. 영상은 아직 안 불러오므로 광고도 없다.
+       첫 탭이 "터치 안에서 재생 명령"이 되려면 그 전에 준비돼 있어야 한다. */
+    setTimeout(warmUpYouTube, 120);
     document.addEventListener('pointerdown', warmUpYouTube, { once: true, capture: true });
 
     // 스페이스바 = 재생/일시정지 (입력 중일 때는 제외)
