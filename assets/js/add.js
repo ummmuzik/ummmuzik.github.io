@@ -3,7 +3,6 @@
 (function () {
   'use strict';
 
-  var MAX_SIDE = 800;                    // 업로드 전에 줄일 최대 변 길이(px)
   var MAX_BYTES = 15 * 1024 * 1024;
 
   function mount(opts) {
@@ -15,12 +14,13 @@
     var fTitle = document.getElementById('f-title');
     var fArtist = document.getElementById('f-artist');
     var fCover = document.getElementById('f-cover');
+    var pick = document.getElementById('cover-pick');
     var submit = document.getElementById('submit');
     var notice = document.getElementById('notice');
     var coverImg = document.getElementById('cover-img');
     var coverPh = document.getElementById('cover-ph');
 
-    var picked = null;       // 새로 고른 사진 (File)
+    var picked = null;       // 잘라낸 사진 (Blob)
     var objectUrl = null;    // 미리보기용 blob URL
 
     if (editing) {
@@ -51,11 +51,10 @@
         coverImg.src = src;
         coverImg.hidden = false;
         coverPh.hidden = true;
-        coverPh.textContent = '미리보기';
       } else {
         coverImg.removeAttribute('src');
         coverImg.hidden = true;
-        coverPh.hidden = false;
+        coverPh.hidden = false;   // 사진이 없으면 사진 아이콘
       }
     }
 
@@ -69,84 +68,37 @@
     coverImg.addEventListener('error', function () {
       coverImg.hidden = true;
       coverPh.hidden = false;
-      coverPh.textContent = '이미지를 불러올 수 없습니다';
     });
 
-    fCover.addEventListener('change', function () {
-      var file = fCover.files && fCover.files[0];
-      dropPreviewUrl();
-      picked = null;
-      notice.hidden = true;
+    // 미리보기 영역이 곧 파일 선택 버튼이다.
+    pick.addEventListener('click', function () { fCover.click(); });
 
-      if (!file) {
-        previewCover();
-        return;
-      }
+    fCover.addEventListener('change', async function () {
+      var file = fCover.files && fCover.files[0];
+      notice.hidden = true;
+      if (!file) return;
 
       if (file.type && file.type.indexOf('image/') !== 0) {
         setNotice('bad', '이미지 파일만 올릴 수 있습니다.');
         fCover.value = '';
-        previewCover();
         return;
       }
-
       if (file.size > MAX_BYTES) {
         setNotice('bad', '사진이 너무 큽니다 (15MB 이하).');
         fCover.value = '';
-        previewCover();
         return;
       }
 
-      picked = file;
-      objectUrl = URL.createObjectURL(file);
+      // 정사각으로 자른다. 취소하면 쓰던 커버를 그대로 둔다.
+      var blob = await window.Cropper.open(file);
+      fCover.value = '';
+      if (!blob) return;
+
+      dropPreviewUrl();
+      picked = blob;
+      objectUrl = URL.createObjectURL(blob);
       previewCover();
     });
-
-    /**
-     * 업로드 전에 사진을 줄인다. 휴대폰 사진은 수 MB 라 그대로 올리면
-     * 목록이 느려진다. 디코딩에 실패하면 원본을 그대로 쓴다.
-     */
-    function shrink(file) {
-      return new Promise(function (resolve) {
-        var url = URL.createObjectURL(file);
-        var img = new Image();
-        img.onload = function () {
-          var w = img.naturalWidth;
-          var h = img.naturalHeight;
-          if (!w || !h) {
-            URL.revokeObjectURL(url);
-            return resolve(null);
-          }
-          var scale = Math.min(1, MAX_SIDE / Math.max(w, h));
-          var canvas = document.createElement('canvas');
-          canvas.width = Math.round(w * scale);
-          canvas.height = Math.round(h * scale);
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(url);
-          try {
-            canvas.toBlob(
-              function (blob) { resolve(blob ? { blob: blob, ext: 'jpg' } : null); },
-              'image/jpeg',
-              0.85
-            );
-          } catch (e) {
-            resolve(null);
-          }
-        };
-        img.onerror = function () {
-          URL.revokeObjectURL(url);
-          resolve(null);
-        };
-        img.src = url;
-      });
-    }
-
-    function extOf(file) {
-      var m = /\.([a-z0-9]{2,5})$/i.exec(file.name || '');
-      if (m) return m[1].toLowerCase();
-      m = /^image\/([a-z0-9]+)$/i.exec(file.type || '');
-      return m ? m[1].toLowerCase() : 'jpg';
-    }
 
     fUrl.addEventListener('input', previewCover);
 
@@ -183,11 +135,7 @@
       try {
         if (picked) {
           busy(true, '사진 올리는 중…');
-          var small = await shrink(picked);
-          cover = await window.DB.uploadCover(
-            small ? small.blob : picked,
-            small ? small.ext : extOf(picked)
-          );
+          cover = await window.DB.uploadCover(picked, 'jpg');
         }
       } catch (err) {
         busy(false);

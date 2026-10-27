@@ -207,15 +207,12 @@
 
     var auth = window.Auth.state();
 
-    // 로그인 전에는 갈 수 있는 곳이 없으므로 이름만 띄운다.
-    if (!auth.signedIn) {
-      brand.textContent = 'ummjjutube';
-      brand.removeAttribute('href');
-      return;
-    }
+    // 로그인 전에는 갈 수 있는 곳이 없으므로 상단바를 비운다.
+    if (!auth.signedIn) return;
 
     if (r.name === 'list') {
-      topLeft.appendChild(lockButton(auth));
+      topLeft.appendChild(whoMenu(auth));
+      if (auth.isAdmin) topLeft.appendChild(adminLock());
       if (auth.signedIn) {
         var add = el('a', 'icon-btn icon-accent');
         add.href = '#/add';
@@ -231,62 +228,60 @@
     if (r.name === 'track' && track && auth.signedIn) topRight.appendChild(trackMenu(track));
   }
 
-  /** 목록 좌측 자물쇠. 로그인하면 열린 자물쇠가 되고, 관리자는 관리 화면으로 간다. */
-  function lockButton(auth) {
+  /** 닉네임 + 로그아웃 드롭다운 */
+  function whoMenu(auth) {
+    var btn = el('button', 'who-btn');
+    btn.type = 'button';
+    btn.textContent = auth.nickname || auth.username || '계정';
+    btn.appendChild((function () {
+      var i = document.createElement('span');
+      i.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10h10l-5 6z"/></svg>';
+      return i.firstChild;
+    })());
+
+    return dropdown(btn, 'to-left', [
+      { label: 'SIGN OUT', onPick: function () { window.Auth.signOut(); } },
+    ]);
+  }
+
+  /** 관리자에게만 보이는 잠긴 자물쇠 */
+  function adminLock() {
     var a = el('a', 'icon-btn');
-    a.href = auth.isAdmin ? '#/admin' : '#/login';
-    a.setAttribute('aria-label', auth.signedIn ? '계정' : '로그인');
-    a.innerHTML = auth.signedIn
-      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-9.58-2h2.2A3 3 0 0 1 15 7v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-5 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>'
-      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7A5 5 0 0 0 7 7v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM9 7a3 3 0 0 1 6 0v2H9zm3 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
+    a.href = '#/admin';
+    a.setAttribute('aria-label', '관리자');
+    a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7A5 5 0 0 0 7 7v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM9 7a3 3 0 0 1 6 0v2H9zm3 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
     return a;
   }
 
-  /* ---------- 상세 화면의 수정·삭제 메뉴 ---------- */
-
-  function trackMenu(track) {
+  /**
+   * 버튼 하나에 달리는 드롭다운. 바깥을 누르거나 Esc 로 닫힌다.
+   * items: [{ label, danger?, onPick }]
+   */
+  function dropdown(btn, popClass, items) {
     var wrap = el('div', 'menu');
-
-    var btn = el('button', 'icon-btn');
-    btn.type = 'button';
-    btn.setAttribute('aria-label', '더보기');
     btn.setAttribute('aria-haspopup', 'true');
     btn.setAttribute('aria-expanded', 'false');
-    btn.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-      '<circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>';
 
-    var pop = el('div', 'menu-pop');
+    var pop = el('div', 'menu-pop' + (popClass ? ' ' + popClass : ''));
     pop.setAttribute('role', 'menu');
     pop.hidden = true;
 
-    var edit = el('button', 'menu-item', '수정');
-    edit.type = 'button';
-    edit.setAttribute('role', 'menuitem');
-    edit.addEventListener('click', function () {
-      close();
-      location.hash = '#/edit/' + encodeURIComponent(track.id);
+    items.forEach(function (it) {
+      var b = el('button', 'menu-item' + (it.danger ? ' danger' : ''), it.label);
+      b.type = 'button';
+      b.setAttribute('role', 'menuitem');
+      b.addEventListener('click', function () {
+        close();
+        it.onPick();
+      });
+      pop.appendChild(b);
     });
 
-    var del = el('button', 'menu-item danger', '삭제');
-    del.type = 'button';
-    del.setAttribute('role', 'menuitem');
-    del.addEventListener('click', function () {
-      close();
-      removeTrack(track);
-    });
-
-    pop.appendChild(edit);
-    pop.appendChild(del);
     wrap.appendChild(btn);
     wrap.appendChild(pop);
 
-    function onDocDown(e) {
-      if (!wrap.contains(e.target)) close();
-    }
-    function onKey(e) {
-      if (e.key === 'Escape') close();
-    }
+    function onDocDown(e) { if (!wrap.contains(e.target)) close(); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
     function open() {
       pop.hidden = false;
       btn.setAttribute('aria-expanded', 'true');
@@ -307,6 +302,25 @@
     teardown.push(close);
 
     return wrap;
+  }
+
+  /* ---------- 상세 화면의 수정·삭제 메뉴 ---------- */
+
+  function trackMenu(track) {
+    var btn = el('button', 'icon-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '더보기');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>';
+
+    return dropdown(btn, '', [
+      {
+        label: '수정',
+        onPick: function () { location.hash = '#/edit/' + encodeURIComponent(track.id); },
+      },
+      { label: '삭제', danger: true, onPick: function () { removeTrack(track); } },
+    ]);
   }
 
   async function removeTrack(track) {

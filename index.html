@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=14">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=14">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=14">
-<link rel="manifest" href="./manifest.webmanifest?v=14">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=15">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=15">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=15">
+<link rel="manifest" href="./manifest.webmanifest?v=15">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=14">
+<link rel="stylesheet" href="./assets/css/app.css?v=15">
 </head>
 <body data-route="list">
 
@@ -122,6 +122,15 @@
   <div id="notice" class="notice" hidden></div>
 
   <form id="form" class="form" novalidate>
+    <!-- 커버: 라벨 없이 미리보기 영역 자체가 선택 버튼이다 -->
+    <button type="button" id="cover-pick" class="cover-pick" aria-label="커버 사진 선택">
+      <img id="cover-img" alt="" hidden>
+      <span id="cover-ph" class="cover-ph" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M20 5h-3.2l-1.2-1.6a1 1 0 0 0-.8-.4H9.2a1 1 0 0 0-.8.4L7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+      </span>
+    </button>
+    <input id="f-cover" class="hidden-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
+
     <div class="field">
       <label for="f-url">url <span class="req">*</span></label>
       <input id="f-url" class="input" type="url" inputmode="url" placeholder="Youtube or Soundcloud URL" required>
@@ -137,15 +146,6 @@
       <input id="f-artist" class="input" type="text" maxlength="200" required>
     </div>
 
-    <div class="field">
-      <label for="f-cover">image</label>
-      <input id="f-cover" class="input file" type="file" accept="image/*">
-      <div class="cover-preview">
-        <img id="cover-img" alt="커버 미리보기" hidden>
-        <span id="cover-ph" class="cover-ph">미리보기</span>
-      </div>
-    </div>
-
     <div class="actions">
       <button id="submit" class="btn btn-primary" type="submit">save</button>
     </div>
@@ -155,7 +155,7 @@
 <template id="tpl-login">
   <section class="auth">
     <div class="auth-logo">
-      <img src="./assets/icons/icon-512.png?v=14" width="160" height="160" alt="" decoding="async">
+      <img src="./assets/icons/icon-512.png?v=15" width="160" height="160" alt="" decoding="async">
     </div>
 
     <div id="notice" class="notice" hidden></div>
@@ -215,13 +215,29 @@
   </section>
 </template>
 
+<template id="tpl-crop">
+  <div class="crop-back">
+    <div class="crop-sheet" role="dialog" aria-modal="true" aria-label="사진 자르기">
+      <div class="crop-frame" id="crop-frame">
+        <img id="crop-img" alt="" draggable="false">
+      </div>
+      <input id="crop-zoom" class="range" type="range" min="100" max="300" value="100" step="1" aria-label="확대">
+      <div class="crop-actions">
+        <button id="crop-cancel" class="btn" type="button">취소</button>
+        <button id="crop-apply" class="btn btn-ink" type="button">적용</button>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=14"></script>
-<script src="./assets/js/sources.js?v=14"></script>
-<script src="./assets/js/db.js?v=14"></script>
-<script src="./assets/js/auth.js?v=14"></script>
-<script src="./assets/js/player.js?v=14"></script>
-<script src="./assets/js/add.js?v=14"></script>
-<script src="./assets/js/app.js?v=14"></script>
+<script src="./assets/js/config.js?v=15"></script>
+<script src="./assets/js/sources.js?v=15"></script>
+<script src="./assets/js/db.js?v=15"></script>
+<script src="./assets/js/auth.js?v=15"></script>
+<script src="./assets/js/crop.js?v=15"></script>
+<script src="./assets/js/player.js?v=15"></script>
+<script src="./assets/js/add.js?v=15"></script>
+<script src="./assets/js/app.js?v=15"></script>
 </body>
 </html>
