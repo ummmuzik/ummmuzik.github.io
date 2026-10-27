@@ -28,8 +28,6 @@
 /* display 를 지정한 요소에도 hidden 속성이 통하도록 */
 [hidden] { display: none !important; }
 
-html, body { height: 100%; }
-
 body {
   margin: 0;
   min-height: 100vh;
@@ -377,8 +375,7 @@ code {
   white-space: nowrap;
 }
 
-.card.is-playing .cover { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.card.is-playing .card-title { color: var(--accent-ink); }
+
 
 /* ---------- 플레이어 ---------- */
 
@@ -606,6 +603,8 @@ code {
   border: 0;
   display: block;
 }
+
+body:not([data-route="track"]) .embeds { opacity: 0; }
 
 .embeds[data-mode="youtube"] #sc-frame { display: none; }
 .embeds[data-mode="soundcloud"] #yt-frame { display: none; }
