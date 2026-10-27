@@ -10,6 +10,8 @@
   'use strict';
 
   var YT_API = 'https://www.youtube.com/iframe_api';
+  // 쿠키를 덜 심는 쪽. 광고가 사라지지는 않는다.
+  var YT_HOST = 'https://www.youtube-nocookie.com';
   var SC_API = 'https://w.soundcloud.com/player/api.js';
 
   var queue = [];
@@ -22,7 +24,7 @@
   var volume = 80;
   var error = '';
 
-  var yt = null, ytLoading = false, ytPlayerReady = false;
+  var yt = null, ytFrame = null, ytLoading = false, ytPlayerReady = false;
   var sc = null, scLoading = false, scLoaded = false;
   var pending = null;
   var ticker = null;
@@ -109,54 +111,45 @@
 
   /* ---------- 유튜브 ---------- */
 
-  function ensureYouTube(onReady) {
-    if (ytPlayerReady) return onReady();
-
-    if (!ytLoading) {
-      ytLoading = true;
-      var prevHook = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = function () {
-        if (typeof prevHook === 'function') prevHook();
-        createYouTube();
-      };
-      if (window.YT && window.YT.Player) createYouTube();
-      else loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
-    }
-
-    var tries = 0;
-    var waiter = setInterval(function () {
-      if (ytPlayerReady) {
-        clearInterval(waiter);
-        onReady();
-      } else if (++tries > 200) {
-        clearInterval(waiter);
-        setError('유튜브 재생기를 불러오지 못했습니다.');
-      }
-    }, 100);
+  /*
+   * 클릭 투 로드. 누르기 전에는 유튜브에 아무것도 요청하지 않고, 누른 그
+   * 자리에서 autoplay=1 로 iframe 을 만든다(사용자 제스처 안이라 모바일에서도
+   * 재생이 막히지 않는다). 조작용 IFrame API 는 그 뒤에 붙인다.
+   */
+  function ytEmbedUrl(id) {
+    return (
+      YT_HOST + '/embed/' + encodeURIComponent(id) +
+      '?autoplay=1&enablejsapi=1&controls=0&disablekb=1&playsinline=1' +
+      '&rel=0&modestbranding=1&iv_load_policy=3' +
+      '&origin=' + encodeURIComponent(location.origin)
+    );
   }
 
-  function createYouTube() {
-    if (yt) return;
-    yt = new window.YT.Player('yt-frame', {
-      width: '100%',
-      height: '100%',
-      playerVars: {
-        controls: 0,
-        disablekb: 1,
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1,
-        iv_load_policy: 3,
-      },
+  function ensureYtFrame() {
+    if (ytFrame) return;
+    var ph = document.getElementById('yt-frame');
+    if (!ph) return;
+    ytFrame = document.createElement('iframe');
+    ytFrame.id = 'yt-frame';
+    ytFrame.title = 'YouTube 재생기';
+    ytFrame.allow = 'autoplay; encrypted-media; picture-in-picture';
+    ytFrame.setAttribute('frameborder', '0');
+    ph.replaceWith(ytFrame);
+  }
+
+  /** 이미 떠 있는 iframe 에 조작용 API 를 붙인다 */
+  function attachYouTube() {
+    if (yt || !ytFrame || !window.YT || !window.YT.Player) return;
+    yt = new window.YT.Player(ytFrame, {
       events: {
         onReady: function () {
           ytPlayerReady = true;
-          yt.setVolume(volume);
+          try { yt.setVolume(volume); } catch (e) { /* 아직 준비 전일 수 있다 */ }
+          emit();
         },
         onStateChange: function (e) {
           var S = window.YT.PlayerState;
           // 재생 여부는 추측하지 않고 재생기가 알려 주는 상태만 따른다.
-          // (모바일에서 자동재생이 막히면 UNSTARTED/CUED 로 남는다)
           if (e.data === S.PLAYING || e.data === S.BUFFERING) { playing = true; emit(); }
           else if (e.data === S.PAUSED || e.data === S.UNSTARTED || e.data === S.CUED) {
             playing = false;
@@ -169,6 +162,37 @@
         },
       },
     });
+  }
+
+  function loadYouTubeApi() {
+    if (ytLoading) return;
+    ytLoading = true;
+    var prevHook = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function () {
+      if (typeof prevHook === 'function') prevHook();
+      attachYouTube();
+    };
+    if (window.YT && window.YT.Player) attachYouTube();
+    else loadScript(YT_API, function () { /* onYouTubeIframeAPIReady 가 이어받는다 */ });
+  }
+
+  function playYouTube(track) {
+    if (ytPlayerReady && yt) {
+      try {
+        yt.loadVideoById(track.provider_id);
+        yt.setVolume(volume);
+      } catch (e) { /* 아래 src 교체로 넘어간다 */ }
+      return;
+    }
+
+    // 아직 조작 API 가 없다: iframe 을 만들거나 주소만 갈아 끼워 바로 튼다.
+    ensureYtFrame();
+    if (!ytFrame) return;
+    ytFrame.src = ytEmbedUrl(track.provider_id);
+    // 제스처 안에서 띄웠으니 재생될 것으로 본다. 잠시 뒤 API 가 붙으면
+    // 실제 상태(자동 재생이 막혔다면 멈춤)로 바로잡힌다.
+    playing = true;
+    loadYouTubeApi();
   }
 
   /* ---------- 사운드클라우드 ---------- */
@@ -256,12 +280,8 @@
       applyMode();
       if (sc && scLoaded) { try { sc.pause(); } catch (e) {} }
       pending = track;
-      ensureYouTube(function () {
-        if (pending !== track) return;
-        yt.loadVideoById(track.provider_id);
-        yt.setVolume(volume);
-        emit();
-      });
+      playYouTube(track);
+      emit();
     } else if (track.provider === 'soundcloud') {
       mode = 'soundcloud';
       applyMode();
@@ -392,11 +412,6 @@
     scFrame = document.getElementById('sc-frame');
     embeds.hidden = false;      // 화면 밖에 있을 뿐, 항상 살아 있어야 한다
     readVolume();
-
-    /* 유튜브 재생기를 미리 만들어 둔다.
-       첫 재생 때 API 를 받아 오면 그 사이에 클릭 제스처가 만료돼
-       모바일에서 자동 재생이 막힌다. */
-    setTimeout(function () { ensureYouTube(function () {}); }, 1200);
 
     // 스페이스바 = 재생/일시정지 (입력 중일 때는 제외)
     document.addEventListener('keydown', function (e) {

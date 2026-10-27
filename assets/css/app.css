@@ -408,7 +408,7 @@ code {
   gap: 14px;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   grid-template-areas: "media info ctrl extra";
-  padding: 10px 18px;
+  padding: 10px 18px calc(18px + env(safe-area-inset-bottom, 0px));
   min-height: var(--bar-h);
   /* 전역 iframe(.embeds, z-index 40) 위에 와야 한다 */
   z-index: 50;
@@ -595,7 +595,7 @@ code {
 @media (max-width: 760px) {
   .player {
     gap: 8px 10px;
-    padding: 10px 14px 12px;
+    padding: 10px 14px calc(22px + env(safe-area-inset-bottom, 0px));
   }
 
   /* 모바일은 기기 음량 버튼을 쓰므로 슬라이더는 감추고 펼치기 버튼만 남긴다 */
