@@ -12,6 +12,7 @@
   'use strict';
 
   var view = document.getElementById('view');
+  var brand = document.getElementById('brand');
   var topLeft = document.getElementById('top-left');
   var topRight = document.getElementById('top-right');
   var embeds = document.getElementById('embeds');
@@ -187,7 +188,7 @@
   /* ---------- 상단바 ---------- */
 
   function backButton() {
-    var b = el('button', 'icon-btn icon-accent');
+    var b = el('button', 'icon-btn icon-back');
     b.type = 'button';
     b.setAttribute('aria-label', '뒤로');
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 4.6 13.98 3.2 7.2 10l6.78 6.8 1.42-1.4L10 10z" transform="translate(0 2)"/></svg>';
@@ -199,10 +200,21 @@
     topLeft.textContent = '';
     topRight.textContent = '';
 
+    if (r.name === 'add') {
+      // 등록 화면에서는 가운데가 제목 역할을 하고, 링크가 아니다.
+      brand.textContent = 'add';
+      brand.removeAttribute('href');
+    } else {
+      brand.textContent = 'ummjjutube';
+      brand.href = '#/';
+    }
+
     if (r.name === 'list') {
-      var edit = el('a', 'btn-text', 'edit');
-      edit.href = '#/add';
-      topRight.appendChild(edit);
+      var add = el('a', 'icon-btn icon-accent');
+      add.href = '#/add';
+      add.setAttribute('aria-label', '음악 등록');
+      add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>';
+      topRight.appendChild(add);
       return;
     }
 
@@ -214,10 +226,6 @@
       out.target = '_blank';
       out.rel = 'noopener noreferrer';
       topRight.appendChild(out);
-    } else if (r.name === 'add') {
-      var back = el('a', 'btn-text', 'back');
-      back.href = '#/';
-      topRight.appendChild(back);
     }
   }
 

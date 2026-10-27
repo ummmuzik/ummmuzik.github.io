@@ -4,8 +4,6 @@
 
   var MAX_SIDE = 800;                    // 업로드 전에 줄일 최대 변 길이(px)
   var MAX_BYTES = 15 * 1024 * 1024;
-  var COVER_HINT = '휴대폰·PC 의 사진을 올립니다. 비우면 유튜브 썸네일을 씁니다.';
-  var URL_HINT = '유튜브(youtube.com, youtu.be)와 사운드클라우드 링크를 지원합니다.';
 
   function mount(opts) {
     opts = opts || {};
@@ -15,8 +13,6 @@
     var fTitle = document.getElementById('f-title');
     var fArtist = document.getElementById('f-artist');
     var fCover = document.getElementById('f-cover');
-    var hint = document.getElementById('url-hint');
-    var coverHint = document.getElementById('cover-hint');
     var submit = document.getElementById('submit');
     var notice = document.getElementById('notice');
     var coverImg = document.getElementById('cover-img');
@@ -71,25 +67,22 @@
       var file = fCover.files && fCover.files[0];
       dropPreviewUrl();
       picked = null;
+      notice.hidden = true;
 
       if (!file) {
-        coverHint.className = 'hint';
-        coverHint.textContent = COVER_HINT;
         previewCover();
         return;
       }
 
       if (file.type && file.type.indexOf('image/') !== 0) {
-        coverHint.className = 'hint bad';
-        coverHint.textContent = '이미지 파일만 올릴 수 있습니다.';
+        setNotice('bad', '이미지 파일만 올릴 수 있습니다.');
         fCover.value = '';
         previewCover();
         return;
       }
 
       if (file.size > MAX_BYTES) {
-        coverHint.className = 'hint bad';
-        coverHint.textContent = '사진이 너무 큽니다 (15MB 이하).';
+        setNotice('bad', '사진이 너무 큽니다 (15MB 이하).');
         fCover.value = '';
         previewCover();
         return;
@@ -97,9 +90,6 @@
 
       picked = file;
       objectUrl = URL.createObjectURL(file);
-      coverHint.className = 'hint ok';
-      coverHint.textContent =
-        file.name + ' (' + Math.round(file.size / 1024) + 'KB) — 올릴 때 ' + MAX_SIDE + 'px 로 줄입니다.';
       previewCover();
     });
 
@@ -149,28 +139,11 @@
       return m ? m[1].toLowerCase() : 'jpg';
     }
 
-    function checkUrl() {
-      var p = parsed();
-      if (!fUrl.value.trim()) {
-        hint.className = 'hint';
-        hint.textContent = URL_HINT;
-        return;
-      }
-      if (p) {
-        hint.className = 'hint ok';
-        hint.textContent = (p.provider === 'youtube' ? '유튜브' : '사운드클라우드') + ' 링크로 인식했습니다.';
-      } else {
-        hint.className = 'hint bad';
-        hint.textContent = '유튜브 또는 사운드클라우드 링크가 아닙니다.';
-      }
-      previewCover();
-    }
-
-    fUrl.addEventListener('input', checkUrl);
+    fUrl.addEventListener('input', previewCover);
 
     function busy(on, label) {
       submit.disabled = on;
-      submit.textContent = on ? label : '저장';
+      submit.textContent = on ? label : 'save';
     }
 
     form.addEventListener('submit', async function (e) {
@@ -227,10 +200,7 @@
         form.reset();
         dropPreviewUrl();
         picked = null;
-        checkUrl();
         previewCover();
-        coverHint.className = 'hint';
-        coverHint.textContent = COVER_HINT;
         fUrl.focus();
       } catch (err) {
         setNotice('bad',

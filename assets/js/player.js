@@ -155,9 +155,13 @@
         },
         onStateChange: function (e) {
           var S = window.YT.PlayerState;
-          if (e.data === S.PLAYING) { playing = true; emit(); }
-          else if (e.data === S.PAUSED) { playing = false; emit(); }
-          else if (e.data === S.ENDED) { next(); }
+          // 재생 여부는 추측하지 않고 재생기가 알려 주는 상태만 따른다.
+          // (모바일에서 자동재생이 막히면 UNSTARTED/CUED 로 남는다)
+          if (e.data === S.PLAYING || e.data === S.BUFFERING) { playing = true; emit(); }
+          else if (e.data === S.PAUSED || e.data === S.UNSTARTED || e.data === S.CUED) {
+            playing = false;
+            emit();
+          } else if (e.data === S.ENDED) { next(); }
         },
         onError: function () {
           playing = false;
@@ -204,7 +208,6 @@
         scLoaded = true;
         sc.setVolume(volume);
         sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
-        playing = true;
         emit();
         onReady(true);
       });
@@ -258,7 +261,6 @@
         if (pending !== track) return;
         yt.loadVideoById(track.provider_id);
         yt.setVolume(volume);
-        playing = true;
         emit();
       });
     } else if (track.provider === 'soundcloud') {
@@ -280,7 +282,6 @@
             },
           });
         }
-        playing = true;
         emit();
       });
     } else {

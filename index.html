@@ -6,13 +6,13 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%A7%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="./assets/css/app.css?v=7">
+<link rel="stylesheet" href="./assets/css/app.css?v=8">
 </head>
 <body data-route="list">
 
 <header class="top">
   <div class="top-left" id="top-left"></div>
-  <a class="brand" href="#/">ummjjutube</a>
+  <a class="brand" id="brand" href="#/">ummjjutube</a>
   <div class="top-right" id="top-right"></div>
 </header>
 
@@ -108,14 +108,12 @@
 </template>
 
 <template id="tpl-add">
-  <h1 class="page-title">add</h1>
   <div id="notice" class="notice" hidden></div>
 
   <form id="form" class="form" novalidate>
     <div class="field">
       <label for="f-url">url <span class="req">*</span></label>
-      <input id="f-url" class="input" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=… 또는 https://soundcloud.com/…" required>
-      <p id="url-hint" class="hint">유튜브(youtube.com, youtu.be)와 사운드클라우드 링크를 지원합니다.</p>
+      <input id="f-url" class="input" type="url" inputmode="url" placeholder="Youtube or Soundcloud URL" required>
     </div>
 
     <div class="field">
@@ -131,7 +129,6 @@
     <div class="field">
       <label for="f-cover">image</label>
       <input id="f-cover" class="input file" type="file" accept="image/*">
-      <p id="cover-hint" class="hint">휴대폰·PC 의 사진을 올립니다. 비우면 유튜브 썸네일을 씁니다.</p>
       <div class="cover-preview">
         <img id="cover-img" alt="커버 미리보기" hidden>
         <span id="cover-ph" class="cover-ph">미리보기</span>
@@ -139,18 +136,17 @@
     </div>
 
     <div class="actions">
-      <button id="submit" class="btn btn-primary" type="submit">저장</button>
-      <a class="btn" href="#/">취소</a>
+      <button id="submit" class="btn btn-primary" type="submit">save</button>
     </div>
   </form>
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=7"></script>
-<script src="./assets/js/sources.js?v=7"></script>
-<script src="./assets/js/db.js?v=7"></script>
-<script src="./assets/js/player.js?v=7"></script>
-<script src="./assets/js/add.js?v=7"></script>
-<script src="./assets/js/app.js?v=7"></script>
+<script src="./assets/js/config.js?v=8"></script>
+<script src="./assets/js/sources.js?v=8"></script>
+<script src="./assets/js/db.js?v=8"></script>
+<script src="./assets/js/player.js?v=8"></script>
+<script src="./assets/js/add.js?v=8"></script>
+<script src="./assets/js/app.js?v=8"></script>
 </body>
 </html>
