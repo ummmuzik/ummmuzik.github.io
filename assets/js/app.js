@@ -207,6 +207,13 @@
 
     var auth = window.Auth.state();
 
+    // 로그인 전에는 갈 수 있는 곳이 없으므로 이름만 띄운다.
+    if (!auth.signedIn) {
+      brand.textContent = 'ummjjutube';
+      brand.removeAttribute('href');
+      return;
+    }
+
     if (r.name === 'list') {
       topLeft.appendChild(lockButton(auth));
       if (auth.signedIn) {
@@ -590,6 +597,9 @@
       submit.textContent = '...';
       try {
         await window.Auth.signIn(id.value, pw.value);
+        var back = pendingRoute && pendingRoute !== '#/login' ? pendingRoute : '#/';
+        pendingRoute = null;
+        location.replace(back);
         paint();
       } catch (err) {
         fail(err && err.message ? err.message : '로그인하지 못했습니다.');
@@ -718,12 +728,22 @@
     }
   }
 
+  var pendingRoute = null;
+
   async function render() {
     teardown.forEach(function (fn) { fn(); });
     teardown = [];
     if (anchorObserver) { anchorObserver.disconnect(); anchorObserver = null; }
 
     var r = route();
+
+    // 로그인하지 않았으면 어떤 화면도 열지 않는다(서버 쪽 RLS 로도 막혀 있다).
+    if (!window.Auth.state().signedIn && r.name !== 'login') {
+      pendingRoute = location.hash || '#/';
+      location.replace('#/login');
+      return;
+    }
+
     document.body.dataset.route = r.name;
     var narrow =
       r.name === 'add' || r.name === 'edit' || r.name === 'login' || r.name === 'admin';
@@ -734,11 +754,6 @@
     setHeader(r, null);
     renderBar(window.Player.state());
 
-    // 등록·수정은 로그인한 사람만 (서버 쪽 RLS 로도 막혀 있다)
-    if ((r.name === 'add' || r.name === 'edit') && !window.Auth.state().signedIn) {
-      location.replace('#/login');
-      return;
-    }
 
     if (r.name === 'track') await renderTrack(r.id);
     else if (r.name === 'edit') await renderEdit(r.id);

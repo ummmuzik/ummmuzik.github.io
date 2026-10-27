@@ -21,10 +21,11 @@ create unique index if not exists tracks_source_url_key on public.tracks (source
 
 alter table public.tracks enable row level security;
 
--- 누구나 목록을 볼 수 있다.
+-- 목록을 보는 것도 로그인한 회원만.
 drop policy if exists "tracks: public read" on public.tracks;
-create policy "tracks: public read"
-  on public.tracks for select
+drop policy if exists "tracks: authed read" on public.tracks;
+create policy "tracks: authed read"
+  on public.tracks for select to authenticated
   using (true);
 
 -- 등록·수정·삭제는 로그인한 회원만.
@@ -56,7 +57,10 @@ insert into storage.buckets (id, name, public)
 values ('covers', 'covers', true)
 on conflict (id) do nothing;
 
--- 커버는 사이트에서 그대로 보여 줘야 하므로 공개 읽기.
+-- 커버는 <img> 로 그대로 띄워야 하므로 공개 읽기로 둔다.
+--   파일 이름이 임의 문자열이라 주소를 모르면 닿을 수 없지만, 주소를 아는
+--   사람은 로그인 없이도 사진 자체는 볼 수 있습니다. 이것까지 막으려면
+--   버킷을 비공개로 바꾸고 서명 URL 을 쓰도록 고쳐야 합니다.
 drop policy if exists "covers: public read" on storage.objects;
 create policy "covers: public read"
   on storage.objects for select
