@@ -1,0 +1,16 @@
+{
+  "name": "ummjjutube",
+  "short_name": "ummjjutube",
+  "description": "유튜브·사운드클라우드 링크로 모아 듣는 음악 목록",
+  "lang": "ko",
+  "start_url": "./index.html#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
