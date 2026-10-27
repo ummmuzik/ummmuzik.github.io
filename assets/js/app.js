@@ -605,7 +605,7 @@
         fail(err && err.message ? err.message : '로그인하지 못했습니다.');
       } finally {
         submit.disabled = false;
-        submit.textContent = 'login';
+        submit.textContent = 'SIGN IN';
       }
     });
 

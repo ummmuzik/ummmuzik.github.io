@@ -129,6 +129,23 @@ code {
 }
 
 .btn-primary:hover { filter: brightness(1.05); }
+
+.btn-ink {
+  background: var(--fg);
+  border-color: transparent;
+  color: #fff;
+}
+
+.btn-ink:hover { background: #000; border-color: transparent; }
+
+/* 입력칸과 같은 폭을 쓰는 버튼 */
+.btn-block {
+  width: 100%;
+  height: 46px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
 .btn:disabled { opacity: 0.55; cursor: default; }
 
 /* ---------- 레이아웃 ---------- */
@@ -191,6 +208,9 @@ code {
   background: var(--bg-soft);
   color: var(--fg);
   font: inherit;
+  /* iOS 사파리는 입력 글자가 16px 미만이면 포커스할 때 화면을 확대한다.
+     viewport 로 확대를 막으면 손가락 확대까지 못 하게 되므로 글자를 키운다. */
+  font-size: 16px;
 }
 
 .input:focus {
@@ -676,6 +696,9 @@ code {
 /* ---------- 로그인 · 관리자 ---------- */
 
 .auth { display: grid; gap: 18px; }
+
+/* 라벨 없이 입력칸만 */
+.login-form { gap: 10px; }
 
 .auth-who {
   margin: 0 0 14px;

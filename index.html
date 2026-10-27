@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=12">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=12">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=12">
-<link rel="manifest" href="./manifest.webmanifest?v=12">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=13">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=13">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=13">
+<link rel="manifest" href="./manifest.webmanifest?v=13">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=12">
+<link rel="stylesheet" href="./assets/css/app.css?v=13">
 </head>
 <body data-route="list">
 
@@ -157,18 +157,12 @@
     <div id="notice" class="notice" hidden></div>
 
     <div id="signed-out">
-      <form id="login-form" class="form">
-        <div class="field">
-          <label for="l-id">id</label>
-          <input id="l-id" class="input" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
-        </div>
-        <div class="field">
-          <label for="l-pw">password</label>
-          <input id="l-pw" class="input" type="password" autocomplete="current-password" required>
-        </div>
-        <div class="actions">
-          <button id="l-submit" class="btn btn-primary" type="submit">login</button>
-        </div>
+      <form id="login-form" class="form login-form">
+        <input id="l-id" class="input" type="text" placeholder="ID" aria-label="아이디"
+               autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        <input id="l-pw" class="input" type="password" placeholder="Password" aria-label="비밀번호"
+               autocomplete="current-password" required>
+        <button id="l-submit" class="btn btn-ink btn-block" type="submit">SIGN IN</button>
       </form>
     </div>
 
@@ -218,12 +212,12 @@
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=12"></script>
-<script src="./assets/js/sources.js?v=12"></script>
-<script src="./assets/js/db.js?v=12"></script>
-<script src="./assets/js/auth.js?v=12"></script>
-<script src="./assets/js/player.js?v=12"></script>
-<script src="./assets/js/add.js?v=12"></script>
-<script src="./assets/js/app.js?v=12"></script>
+<script src="./assets/js/config.js?v=13"></script>
+<script src="./assets/js/sources.js?v=13"></script>
+<script src="./assets/js/db.js?v=13"></script>
+<script src="./assets/js/auth.js?v=13"></script>
+<script src="./assets/js/player.js?v=13"></script>
+<script src="./assets/js/add.js?v=13"></script>
+<script src="./assets/js/app.js?v=13"></script>
 </body>
 </html>
