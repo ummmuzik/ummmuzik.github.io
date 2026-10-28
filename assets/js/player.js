@@ -267,6 +267,28 @@
 
   /* ---------- 사운드클라우드 ---------- */
 
+  var SC_SHORT_RE = /on\.soundcloud\.com|soundcloud\.app\.goo\.gl/;
+  var scResolved = {};    // 단축 링크 → 풀어 둔 주소
+
+  /* 위젯에 넘길 주소를 정한다.
+       - 등록할 때 단축 링크를 풀어 두었으면 provider_id 에 그 주소가 들어 있다.
+       - 그러지 못한 채 저장된 예전 곡이면 여기서 한 번 풀어 본다(실패하면 원래 주소).
+     푸는 일만 비동기이고, 보통은 그 자리에서 done 을 부른다. */
+  function scPrepare(track, done) {
+    var id = track.provider_id || '';
+    if (/^https?:\/\//.test(id)) return done(id);
+
+    var src = track.source_url || '';
+    if (!SC_SHORT_RE.test(src)) return done(src);
+    if (scResolved[src]) return done(scResolved[src]);
+    if (!window.Sources || !window.Sources.resolveSoundcloud) return done(src);
+
+    window.Sources.resolveSoundcloud(src).then(function (url) {
+      if (url) scResolved[src] = url;
+      done(url || src);
+    }, function () { done(src); });
+  }
+
   function scEmbedUrl(sourceUrl, autoplay) {
     return (
       'https://w.soundcloud.com/player/?url=' + encodeURIComponent(sourceUrl) +
@@ -276,7 +298,7 @@
   }
 
   /** onReady(alreadyLoaded) — true 면 위젯을 만들 때 이미 이 트랙을 로드했다 */
-  function ensureSoundCloud(track, onReady) {
+  function ensureSoundCloud(url, onReady) {
     if (scLoaded) return onReady(false);
 
     if (scLoading) {
@@ -294,7 +316,7 @@
         setError('사운드클라우드 재생기를 불러오지 못했습니다.');
         return;
       }
-      scFrame.src = scEmbedUrl(track.source_url, true);
+      scFrame.src = scEmbedUrl(url, true);
       sc = window.SC.Widget(scFrame);
 
       sc.bind(window.SC.Widget.Events.READY, function () {
@@ -322,7 +344,10 @@
         }
       });
       sc.bind(window.SC.Widget.Events.ERROR, function () {
-        setError('이 사운드클라우드 트랙은 재생할 수 없습니다.');
+        var cur = queue[index];
+        setError(cur && /on\.soundcloud\.com|soundcloud\.app\.goo\.gl/.test(cur.source_url || '')
+          ? '단축 링크라 재생하지 못했습니다. 사운드클라우드 웹에서 연 주소로 다시 등록해 주세요.'
+          : '이 사운드클라우드 트랙은 재생할 수 없습니다.');
       });
     });
   }
@@ -362,21 +387,24 @@
       applyMode();
       if (yt && ytPlayerReady) { try { yt.pauseVideo(); } catch (e) {} }
       pending = track;
-      ensureSoundCloud(track, function (alreadyLoaded) {
+      scPrepare(track, function (url) {
         if (pending !== track) return;
-        if (!alreadyLoaded) {
-          sc.load(track.source_url, {
-            auto_play: true,
-            visual: true,
-            show_comments: false,
-            hide_related: true,
-            callback: function () {
-              sc.setVolume(volume);
-              sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
-            },
-          });
-        }
-        emit();
+        ensureSoundCloud(url, function (alreadyLoaded) {
+          if (pending !== track) return;
+          if (!alreadyLoaded) {
+            sc.load(url, {
+              auto_play: true,
+              visual: true,
+              show_comments: false,
+              hide_related: true,
+              callback: function () {
+                sc.setVolume(volume);
+                sc.getDuration(function (ms) { duration = (ms || 0) / 1000; emit(); });
+              },
+            });
+          }
+          emit();
+        });
       });
     } else {
       setError('지원하지 않는 소스입니다.');

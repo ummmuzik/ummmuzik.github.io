@@ -3,7 +3,11 @@
   'use strict';
 
   var YT_HOSTS = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'];
-  var SC_HOSTS = ['soundcloud.com', 'www.soundcloud.com', 'm.soundcloud.com', 'on.soundcloud.com'];
+  var SC_HOSTS = ['soundcloud.com', 'www.soundcloud.com', 'm.soundcloud.com', 'on.soundcloud.com',
+                  'soundcloud.app.goo.gl'];
+  // 모바일에서 공유하면 나오는 단축 링크. 어디로 가는지 우리가 알 수 없으므로
+  // 주소를 고치지 않고 그대로 둔다(고치면 없는 주소가 된다).
+  var SC_SHORT = ['on.soundcloud.com', 'soundcloud.app.goo.gl'];
 
   function hostOf(url) {
     try {
@@ -54,12 +58,23 @@
 
     if (SC_HOSTS.indexOf(host) !== -1) {
       var u = new URL(url);
+      var path = u.pathname.replace(/\/+$/, '');
+      if (!path || path === '/') return null;
+
+      if (SC_SHORT.indexOf(host) !== -1) {
+        return {
+          provider: 'soundcloud',
+          provider_id: path.replace(/^\/+/, ''),
+          source_url: 'https://' + host + path,   // 단축 링크는 그대로
+          shortened: true,
+        };
+      }
+
       // 추적 파라미터 제거, 경로만 유지
-      if (u.pathname === '/' || u.pathname === '') return null;
       return {
         provider: 'soundcloud',
-        provider_id: u.pathname.replace(/^\/+/, ''),
-        source_url: 'https://soundcloud.com' + u.pathname.replace(/\/+$/, ''),
+        provider_id: path.replace(/^\/+/, ''),
+        source_url: 'https://soundcloud.com' + path,
       };
     }
 
@@ -74,5 +89,30 @@
     return '';
   }
 
-  window.Sources = { parse: parse, fallbackCover: fallbackCover };
+  /**
+   * 단축 링크가 가리키는 트랙을 알아낸다.
+   * 브라우저에서는 리다이렉트를 따라가도 최종 주소를 읽을 수 없으므로(CORS),
+   * 사운드클라우드 oEmbed 에 물어본다. 응답의 html 안에 재생기용 주소가 들어 있다.
+   * 실패하면 null — 그때는 단축 링크를 그대로 재생기에 넘긴다.
+   */
+  async function resolveSoundcloud(url) {
+    try {
+      var api = 'https://soundcloud.com/oembed?format=json&url=' + encodeURIComponent(url);
+      var res = await fetch(api, { headers: { Accept: 'application/json' } });
+      if (!res.ok) return null;
+      var data = await res.json();
+      var m = /url=([^&"']+)/.exec(String(data.html || ''));
+      if (!m) return null;
+      var found = decodeURIComponent(m[1]);
+      return /^https?:\/\/(api\.)?soundcloud\.com\//.test(found) ? found : null;
+    } catch (e) {
+      return null;     // CORS·네트워크 문제면 조용히 포기
+    }
+  }
+
+  window.Sources = {
+    parse: parse,
+    fallbackCover: fallbackCover,
+    resolveSoundcloud: resolveSoundcloud,
+  };
 })();

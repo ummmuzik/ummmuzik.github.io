@@ -147,13 +147,21 @@
       }
 
       busy(true, '저장 중…');
+
+      // 모바일 공유 단축 링크는 그대로 두면 재생기가 못 찾는다. 풀어 둔다.
+      var providerId = p.provider_id;
+      if (p.provider === 'soundcloud' && p.shortened) {
+        var resolved = await window.Sources.resolveSoundcloud(p.source_url);
+        if (resolved) providerId = resolved;
+      }
+
       var row = {
         title: title,
         artist: artist,
         cover_url: cover || null,
         source_url: p.source_url,
         provider: p.provider,
-        provider_id: p.provider_id,
+        provider_id: providerId,
       };
 
       try {
