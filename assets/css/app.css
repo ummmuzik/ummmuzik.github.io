@@ -494,15 +494,21 @@ code {
 .p-controls .icon-btn:disabled,
 .track-controls .icon-btn:disabled { opacity: 1; }
 
+/* 배경 원 없이 아이콘만 (먹색) */
 .play-btn {
   width: 44px;
   height: 44px;
-  background: var(--fg);
-  color: #fff;
+  background: none;
+  color: var(--fg);
 }
 
-.play-btn:hover { background: #000; }
 .play-btn svg { width: 22px; height: 22px; }
+
+/* 하단 플레이어: 아이콘을 조금 크게 */
+.p-controls .icon-btn { width: 40px; height: 40px; }
+.p-controls .icon-btn svg { width: 26px; height: 26px; }
+.p-controls .play-btn { width: 46px; height: 46px; }
+.p-controls .play-btn svg { width: 32px; height: 32px; }
 .play-btn .i-pause { display: none; }
 .play-btn.is-playing .i-play { display: none; }
 .play-btn.is-playing .i-pause { display: block; }
@@ -738,9 +744,11 @@ body:not([data-route="track"]) .embeds { opacity: 0; }
 
 .track-controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
 
-.track-controls .play-btn { width: 62px; height: 62px; }
-.track-controls .play-btn svg { width: 28px; height: 28px; }
-.track-controls .icon-btn svg { width: 24px; height: 24px; }
+/* 상세: 더 크게 */
+.track-controls .icon-btn { width: 48px; height: 48px; }
+.track-controls .icon-btn svg { width: 30px; height: 30px; }
+.track-controls .play-btn { width: 56px; height: 56px; }
+.track-controls .play-btn svg { width: 40px; height: 40px; }
 
 .track-status { margin: 0; min-height: 18px; font-size: 12.5px; color: var(--bad); text-align: center; }
 
