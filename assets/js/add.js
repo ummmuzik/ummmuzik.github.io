@@ -58,11 +58,41 @@
       }
     }
 
-    /** 새로 고른 사진 > (수정 모드면) 지금 커버 > 유튜브 썸네일 순으로 보여 준다 */
+    var autoFor = '';     // 자동 커버를 찾아 둔 링크
+    var autoCover = '';   // 그 링크의 커버 주소 ('' = 없음)
+    var looking = '';     // 지금 물어보고 있는 링크
+
+    /** 새로 고른 사진 > (수정 모드면) 지금 커버 > 자동 커버(유튜브 썸네일·
+        사운드클라우드 아트워크) 순으로 보여 준다 */
     function previewCover() {
       if (picked) return showPreview(objectUrl);
       if (editing && editing.cover_url) return showPreview(editing.cover_url);
-      showPreview(window.Sources.fallbackCover(parsed()));
+
+      var p = parsed();
+      var yt = window.Sources.fallbackCover(p);
+      if (yt) return showPreview(yt);
+
+      if (p && p.provider === 'soundcloud') {
+        if (autoFor === p.source_url) return showPreview(autoCover);
+        showPreview('');            // 찾는 동안은 사진 아이콘
+        lookupCover(p.source_url);
+        return;
+      }
+
+      showPreview('');
+    }
+
+    /* 사운드클라우드는 주소만으로 커버를 알 수 없어 oEmbed 에 물어본다. */
+    function lookupCover(url) {
+      if (looking === url) return;
+      looking = url;
+      window.Sources.soundcloudCover(url).then(function (found) {
+        looking = '';
+        autoFor = url;
+        autoCover = found || '';
+        var now = parsed();
+        if (!picked && now && now.source_url === url) previewCover();
+      });
     }
 
     coverImg.addEventListener('error', function () {
@@ -128,7 +158,7 @@
       // 새 사진을 고르지 않았다면 수정 모드에서는 쓰던 커버를 그대로 둔다.
       // 단, 유튜브 썸네일을 쓰고 있었다면 바뀐 링크에 맞춰 다시 잡는다.
       var cover = window.Sources.fallbackCover(p);
-      if (editing && editing.cover_url && !/i\.ytimg\.com/.test(editing.cover_url)) {
+      if (editing && editing.cover_url && !/i\.ytimg\.com|sndcdn\.com/.test(editing.cover_url)) {
         cover = editing.cover_url;
       }
 
@@ -147,6 +177,11 @@
       }
 
       busy(true, '저장 중…');
+
+      // 사진을 비워 두고 올리면 사운드클라우드 아트워크를 가져다 쓴다.
+      if (!picked && !cover && p.provider === 'soundcloud') {
+        cover = (autoFor === p.source_url ? autoCover : await window.Sources.soundcloudCover(p.source_url)) || '';
+      }
 
       // 모바일 공유 단축 링크는 그대로 두면 재생기가 못 찾는다. 풀어 둔다.
       var providerId = p.provider_id;
