@@ -161,11 +161,13 @@ Authentication → Users 에서 처리하세요(이때 `profiles` 행도 같이 
 
 | 작업 | 언제 | 하는 일 |
 | --- | --- | --- |
-| `keepalive` | 매주 월 05:17 UTC | 프로젝트 자기 REST 주소로 요청 한 번 (결과는 버림) |
-| `keepalive-cleanup` | 매주 월 05:47 UTC | 일주일 지난 `cron.job_run_details` 기록 삭제 |
+| `keepalive` | **월·목** 05:17 UTC | 프로젝트 자기 REST 주소로 요청 한 번 (결과는 버림) |
+| `keepalive-cleanup` | 매주 목 05:47 UTC | 일주일 지난 `cron.job_run_details` 기록 삭제 |
 
-기준이 7 일이면 주 1 회는 간격이 딱 7 일이라 여유가 없습니다. 파일 안 주석대로
-`'17 5 */3 * *'` (사흘마다) 로 바꾸면 넉넉합니다.
+깨우는 일을 하는 건 `keepalive` 뿐입니다. `keepalive-cleanup` 은 DB 안에서 기록만
+지우므로 밖으로 나가는 요청이 없고 '활동' 으로 세어지지 않습니다. 그래서 두 작업의
+날짜를 나누는 대신 `keepalive` 자체를 주 2 회로 돌립니다(간격 3~4 일).
+더 자주 하려면 `'17 5 */3 * *'` (사흘마다) 로 바꿔도 됩니다.
 
 확인: `select jobid, jobname, schedule, active from cron.job;`
 

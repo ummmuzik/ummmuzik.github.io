@@ -2,9 +2,13 @@
 --
 -- Supabase 무료 프로젝트는 일주일 남짓 아무 요청이 없으면 일시 정지됩니다.
 -- 아래 두 작업을 걸어 두면
---   1) keepalive          — 매주 한 번, 프로젝트 자신의 REST 에 요청 한 번만 보냅니다.
+--   1) keepalive          — 월·목 두 번, 프로젝트 자신의 REST 에 요청 한 번만 보냅니다.
 --                           (tracks 한 줄을 읽는 척만 하고 결과는 버립니다)
---   2) keepalive-cleanup  — 매주 한 번, 일주일이 지난 cron 실행 기록을 지웁니다.
+--   2) keepalive-cleanup  — 매주 목요일, 일주일이 지난 cron 실행 기록을 지웁니다.
+--
+-- 깨우는 일을 하는 건 1) 뿐입니다. 2) 는 DB 안에서 기록만 지우므로 밖으로
+-- 나가는 요청이 없고, 따라서 '활동' 으로 세어지지 않습니다. 그래서 날짜를
+-- 나누는 대신 1) 자체를 주 2 회(월·목)로 돌립니다. 간격이 3~4 일이 됩니다.
 --
 -- Supabase 대시보드 > SQL Editor 에 붙여넣고 한 번만 실행하세요.
 -- 여러 번 실행해도 안전합니다(있으면 지우고 다시 겁니다).
@@ -28,14 +32,12 @@ begin
   end if;
 end $$;
 
--- 1) 깨워 두기 — 매주 월요일 05:17 UTC (한국 시간 월요일 14:17)
---
---    [여유를 더 두려면] 일시 정지 기준이 7 일이면 주 1 회는 간격이 딱 7 일이라
---    여유가 없습니다. 아래 schedule 을 '17 5 */3 * *' (사흘마다) 로 바꾸면
---    넉넉해집니다. 하는 일은 똑같습니다.
+-- 1) 깨워 두기 — 월·목 05:17 UTC (한국 시간 월·목 14:17)
+--    주 1 회면 간격이 딱 7 일이라 여유가 없어 두 번으로 나눕니다.
+--    더 자주 하고 싶으면 '17 5 */3 * *' (사흘마다) 로 바꿔도 됩니다.
 select cron.schedule(
   'keepalive',
-  '17 5 * * 1',
+  '17 5 * * 1,4',
   $job$
     select net.http_get(
       url     := 'https://goyfjwndvdkgnodnssye.supabase.co/rest/v1/tracks?select=id&limit=1',
@@ -46,11 +48,11 @@ select cron.schedule(
   $job$
 );
 
--- 2) 기록 지우기 — 매주 월요일 05:47 UTC, 일주일 지난 실행 기록만 남기지 않는다.
+-- 2) 기록 지우기 — 매주 목요일 05:47 UTC, 일주일 지난 실행 기록은 남기지 않는다.
 --    (전부 비우고 싶으면 where 절을 지우세요)
 select cron.schedule(
   'keepalive-cleanup',
-  '47 5 * * 1',
+  '47 5 * * 4',
   $job$
     delete from cron.job_run_details where end_time < now() - interval '7 days';
   $job$
