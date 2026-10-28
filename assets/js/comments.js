@@ -101,12 +101,17 @@
     // 다 올라오면 애니메이션을 떼어, 끄는 동안 transform 이 먹게 한다
     var settle = setTimeout(function () { sheet.classList.add('is-settled'); }, 340);
 
+    /** 여기까지 내리면 닫는다. 같은 거리로 뒤 화면도 상세로 되돌아간다. */
+    function closeAt() {
+      return Math.min(140, sheet.getBoundingClientRect().height * 0.28);
+    }
+
     grip.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       clearTimeout(settle);
       sheet.classList.add('is-settled');
       sheet.style.transition = 'none';
-      drag = { y: e.clientY, t: Date.now(), dy: 0 };
+      drag = { y: e.clientY, t: Date.now(), dy: 0, at: closeAt() };
       try { grip.setPointerCapture(e.pointerId); } catch (err) { /* 그냥 진행 */ }
     });
 
@@ -114,19 +119,26 @@
       if (!drag) return;
       drag.dy = Math.max(0, e.clientY - drag.y);
       sheet.style.transform = 'translateY(' + drag.dy + 'px)';
+      // 내린 만큼 뒤의 플레이어도 상세 화면으로 되돌아간다
+      if (typeof opts.onDrag === 'function') {
+        opts.onDrag(Math.min(1, drag.dy / drag.at));
+      }
     });
 
     function endDrag() {
       if (!drag) return;
       var dy = drag.dy;
       var speed = dy / Math.max(1, Date.now() - drag.t);   // px/ms
+      var at = drag.at;
       drag = null;
 
       // 많이 내렸거나(높이의 28%, 최대 140px) 빠르게 튕겼으면 닫는다
-      var far = dy > Math.min(140, sheet.getBoundingClientRect().height * 0.28);
-      if (far || (dy > 20 && speed > 0.5)) {
+      var closing = dy > at || (dy > 20 && speed > 0.5);
+      if (typeof opts.onDragEnd === 'function') opts.onDragEnd(closing);
+
+      if (closing) {
         sheet.style.transition = '';
-        close();        // 닫는 모션이 지금 자리에서 이어진다
+        close(false, true);     // 닫는 모션이 지금 자리에서 이어진다
         return;
       }
 
@@ -139,8 +151,9 @@
 
     var closing = false;
 
-    /** close(true) 면 내려가는 모션 없이 바로 치운다(화면을 떠날 때) */
-    function close(immediate) {
+    /** close(true) 면 내려가는 모션 없이 바로 치운다(화면을 떠날 때).
+        dragged 면 뒤 화면이 이미 끌려 되돌아오는 중이다. */
+    function close(immediate, dragged) {
       if (closing) return;
       closing = true;
       closeMenu();
@@ -151,7 +164,7 @@
       if (closeOpen === close) closeOpen = null;
 
       // 창이 내려가는 동안 상세 화면은 제자리로 커진다.
-      if (typeof opts.onClose === 'function') opts.onClose();
+      if (typeof opts.onClose === 'function') opts.onClose(!!dragged);
 
       if (immediate) return done();
       back.classList.add('is-closing');

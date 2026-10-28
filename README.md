@@ -154,6 +154,21 @@ supabase functions deploy admin-create-user
 비밀번호 변경·회원 삭제 화면은 아직 없습니다. 필요하면 대시보드의
 Authentication → Users 에서 처리하세요(이때 `profiles` 행도 같이 지워야 합니다).
 
+## 5-4. 프로젝트가 잠들지 않게 (선택)
+
+무료 프로젝트는 일주일 남짓 아무 요청이 없으면 일시 정지됩니다.
+`supabase/keepalive.sql` 을 SQL Editor 에서 한 번 실행하면 주간 작업 두 개가 걸립니다.
+
+| 작업 | 언제 | 하는 일 |
+| --- | --- | --- |
+| `keepalive` | 매주 월 05:17 UTC | 프로젝트 자기 REST 주소로 요청 한 번 (결과는 버림) |
+| `keepalive-cleanup` | 매주 월 05:47 UTC | 일주일 지난 `cron.job_run_details` 기록 삭제 |
+
+기준이 7 일이면 주 1 회는 간격이 딱 7 일이라 여유가 없습니다. 파일 안 주석대로
+`'17 5 */3 * *'` (사흘마다) 로 바꾸면 넉넉합니다.
+
+확인: `select jobid, jobname, schedule, active from cron.job;`
+
 ## 6. 권한 더 좁히기 (선택)
 
 목록 조회까지 포함해 `tracks` 의 모든 작업이 로그인(`authenticated`)을 요구합니다.

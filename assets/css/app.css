@@ -867,6 +867,14 @@ body.cmt-mode .track-controls .play-btn svg { width: 32px; height: 32px; }
    비쳐 보인다. (커버 뒤라 소리는 그대로 난다) */
 body.track-morph .embeds { opacity: 0; }
 
+/* 손잡이를 끌어내리는 동안: 내린 만큼 플레이어 글자·버튼이 흐려진다
+   (커버는 app.js 가 같은 비율로 키운다) */
+body.cmt-drag .track-meta,
+body.cmt-drag .track-controls {
+  opacity: var(--drag-fade, 1);
+  transition: opacity 120ms linear;
+}
+
 /* 커버 말고는 먼저 사라진다 (모양을 바꾸기 직전 130ms) */
 body.morph-out .track-meta,
 body.morph-out .track-controls,
@@ -1122,6 +1130,7 @@ select.input {
   background: #fff;
   border-radius: 18px 18px 0 0;
   overflow: hidden;
+  position: relative;       /* 손잡이를 겹쳐 두기 위해 */
 }
 
 /* 아래에서 올라오고, 닫을 때 다시 내려간다 */
@@ -1151,13 +1160,19 @@ select.input {
   box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.09);
 }
 
-/* 아래로 끌어내려 닫는 손잡이 */
+/* 아래로 끌어내려 닫는 손잡이.
+   줄을 따로 만들지 않고 머리글("댓글"·X) 위에 겹쳐 둔다. */
 .sheet-grip {
-  flex: none;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -40px;
+  width: 80px;
+  height: 18px;
+  padding-top: 6px;
+  z-index: 2;
   display: grid;
-  place-items: center;
-  height: 24px;
-  padding-top: 9px;
+  place-items: start center;
   cursor: grab;
   touch-action: none;      /* 세로 끌기를 브라우저가 가져가지 않게 */
 }
@@ -1177,7 +1192,7 @@ select.input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 14px 10px 20px;
+  padding: 12px 14px 10px 20px;
   border-bottom: 1px solid var(--line);
 }
 

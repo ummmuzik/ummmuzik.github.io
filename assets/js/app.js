@@ -186,6 +186,52 @@
 
   var FADE = 130;    // ms, 커버 말고 다른 것들이 사라지는 시간
   var morphing = false;
+  var detailCover = null;   // 상세 화면에서의 커버 자리 (끌어내릴 때 되돌릴 목표)
+  var dragFrom = null;      // 끌기 시작할 때의 커버 자리
+
+  /* 손잡이를 끌어내리는 동안, 내린 만큼(p: 0~1) 상세 화면으로 되돌린다.
+     커버는 점점 커지고 플레이어 글자·버튼은 흐려진다. */
+  function dragMorph(p) {
+    var cover = view.querySelector('.track-cover');
+    if (!cover || !detailCover) return;
+    if (!dragFrom) dragFrom = cover.getBoundingClientRect();
+
+    var scale = 1 + (detailCover.width / dragFrom.width - 1) * p;
+    var dx = (detailCover.left - dragFrom.left) * p;
+    var dy = (detailCover.top - dragFrom.top) * p;
+
+    cover.style.transition = 'none';
+    cover.style.transformOrigin = 'top left';
+    cover.style.transform =
+      'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
+
+    document.body.classList.add('cmt-drag');
+    // 글자는 조금만 내려도 금방 사라진다
+    document.body.style.setProperty('--drag-fade', String(Math.max(0, 1 - p / 0.35)));
+    syncEmbeds();
+  }
+
+  /** 손을 뗐을 때. closing 이면 뒤이어 morphTrack(false) 이 이어받는다. */
+  function dragMorphEnd(closing) {
+    dragFrom = null;
+    if (closing) return;
+
+    var cover = view.querySelector('.track-cover');
+    if (cover) {
+      cover.style.transition = 'transform 200ms ease';
+      cover.style.transform = '';
+      syncEmbedsFor(240);
+      setTimeout(function () {
+        cover.style.transition = '';
+        cover.style.transformOrigin = '';
+      }, 240);
+    }
+    document.body.style.setProperty('--drag-fade', '1');
+    setTimeout(function () {
+      document.body.classList.remove('cmt-drag');
+      document.body.style.removeProperty('--drag-fade');
+    }, 220);
+  }
 
   /**
    * on=true: 상세 화면을 상단의 작은 플레이어로. false: 원래대로.
@@ -194,15 +240,22 @@
    *   3) 거의 도착했을 때 바뀐 쪽 글자·버튼이 빠르게 나타난다.
    * done 은 2) 가 시작될 때, 즉 새 레이아웃이 잡힌 직후에 부른다.
    */
-  function morphTrack(on, done) {
+  function morphTrack(on, done, skipFade) {
     if (morphing) return;
-    morphing = true;
-    document.body.classList.add('morph-out');
 
-    setTimeout(function () {
+    function swap() {
       morphing = false;
       var cover = view.querySelector('.track-cover');
+      // 끌어내리던 중이면 그 자리(커진 상태)에서 이어진다
       var first = cover ? cover.getBoundingClientRect() : null;
+      if (cover) {
+        cover.style.transition = 'none';
+        cover.style.transform = '';
+      }
+      dragFrom = null;
+      document.body.classList.remove('cmt-drag');
+      document.body.style.removeProperty('--drag-fade');
+      if (on) detailCover = first;   // 다시 펼칠 때 돌아갈 자리
 
       document.body.classList.remove('morph-out');
       document.body.classList.toggle('cmt-mode', !!on);
@@ -215,7 +268,14 @@
 
       flowAll();   // 제목 칸 너비가 달라졌다
       if (typeof done === 'function') done();
-    }, FADE);
+    }
+
+    // 끌어내리는 동안 이미 흐려졌으면 사라지는 단계는 건너뛴다
+    if (skipFade) return swap();
+
+    morphing = true;
+    document.body.classList.add('morph-out');
+    setTimeout(swap, FADE);
   }
 
   /** 상단 플레이어 아래 y 좌표 (댓글 창이 여기서부터 아래를 다 쓴다) */
@@ -594,7 +654,9 @@
         window.Comments.open(track, {
           onChange: showCount,
           fillBelow: playerBottom,
-          onClose: function () { morphTrack(false); },
+          onDrag: dragMorph,
+          onDragEnd: dragMorphEnd,
+          onClose: function (dragged) { morphTrack(false, null, dragged); },
         });
       });
     });
