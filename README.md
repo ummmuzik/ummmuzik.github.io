@@ -192,7 +192,8 @@ supabase/functions/admin-create-user/
 ## 아이콘
 
 `favicon.ico`(루트)와 `assets/icons/` 의 PNG 들, `manifest.webmanifest` 가
-파비콘과 홈 화면 아이콘을 담당합니다. 그림을 바꾸려면 원본 한 장을 준비해
+파비콘과 홈 화면 아이콘을 담당합니다. 예전에 쓰던 아이콘은 지우지 않고
+`assets/icons/archive/` 에 그대로 두었습니다. 그림을 바꾸려면 원본 한 장을 준비해
 같은 이름으로 16·32·48·180·192·512 와 maskable(안쪽 80% 로 축소) 을 다시 만들고,
 `index.html` 의 `?v=` 숫자를 올리세요(브라우저가 파비콘을 오래 캐시합니다).
 
