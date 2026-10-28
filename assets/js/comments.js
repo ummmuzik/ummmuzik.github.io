@@ -51,8 +51,11 @@
     }
   }
 
+  var closeOpen = null;     // 열려 있는 창을 닫는 함수 (화면을 떠날 때 쓴다)
+
   function open(track, opts) {
     opts = opts || {};
+    if (closeOpen) closeOpen(true);
 
     var node = document.getElementById('tpl-comments').content.cloneNode(true);
     var back = node.querySelector('.sheet-back');
@@ -77,12 +80,43 @@
 
     /* ---------- 창 ---------- */
 
-    function close() {
+    /* 상세 화면에서 열면 상단 플레이어 아래를 전부 차지한다.
+       (opts.fillBelow() 가 플레이어 아래 y 좌표를 알려 준다) */
+    function layout() {
+      if (typeof opts.fillBelow !== 'function') return;
+      var y = opts.fillBelow();
+      if (y == null) return;
+      back.classList.add('is-filled');
+      back.style.top = Math.max(0, Math.round(y)) + 'px';
+    }
+    layout();
+    window.addEventListener('resize', layout);
+
+    var closing = false;
+
+    /** close(true) 면 내려가는 모션 없이 바로 치운다(화면을 떠날 때) */
+    function close(immediate) {
+      if (closing) return;
+      closing = true;
       closeMenu();
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', layout);
+      if (closeOpen === close) closeOpen = null;
+
+      // 창이 내려가는 동안 상세 화면은 제자리로 커진다.
+      if (typeof opts.onClose === 'function') opts.onClose();
+
+      if (immediate) return done();
+      back.classList.add('is-closing');
+      setTimeout(done, 300);
+    }
+
+    function done() {
       back.remove();
       document.body.classList.remove('sheet-open');
-      document.removeEventListener('keydown', onKey);
     }
+
+    closeOpen = close;
 
     function onKey(e) {
       if (e.key !== 'Escape') return;
@@ -94,7 +128,7 @@
     back.addEventListener('pointerdown', function (e) {
       if (e.target === back) close();
     });
-    back.querySelector('.sheet-close').addEventListener('click', close);
+    back.querySelector('.sheet-close').addEventListener('click', function () { close(); });
 
     function say(msg) {
       toast.textContent = msg;
@@ -326,5 +360,10 @@
     load(false);
   }
 
-  window.Comments = { open: open };
+  /** 열려 있는 창이 있으면 모션 없이 닫는다 (화면을 떠날 때) */
+  function closeAny() {
+    if (closeOpen) closeOpen(true);
+  }
+
+  window.Comments = { open: open, closeAny: closeAny };
 })();

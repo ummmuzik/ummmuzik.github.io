@@ -109,6 +109,65 @@
   // 문서가 아니라 본문 영역이 스크롤되므로 거기서도 위치를 다시 잡는다.
   view.addEventListener('scroll', syncEmbeds, { passive: true });
 
+  /** 주어진 시간 동안 매 프레임 iframe 위치를 다시 잡는다(움직이는 중) */
+  function syncEmbedsFor(ms) {
+    var until = performance.now() + ms;
+    (function step() {
+      syncEmbeds();
+      if (performance.now() < until) requestAnimationFrame(step);
+    })();
+  }
+
+  /* ---------- 상세 화면 ↔ 상단 플레이어 ---------- */
+
+  var MORPH = 340;   // ms
+
+  /* 레이아웃을 먼저 바꾼 뒤, 커버를 원래 자리·크기에서 새 자리로 흘려보낸다
+     (FLIP). 커버 위에 겹쳐 둔 재생기 iframe 도 매 프레임 따라오게 한다. */
+  function flipCover(cover, first) {
+    var last = cover.getBoundingClientRect();
+    var sx = first.width / last.width;
+    var sy = first.height / last.height;
+    if (!isFinite(sx) || !isFinite(sy) || !sx || !sy) return;
+
+    cover.style.transition = 'none';
+    cover.style.transformOrigin = 'top left';
+    cover.style.transform =
+      'translate(' + (first.left - last.left) + 'px,' + (first.top - last.top) + 'px)' +
+      ' scale(' + sx + ',' + sy + ')';
+
+    requestAnimationFrame(function () {
+      cover.style.transition = 'transform ' + MORPH + 'ms cubic-bezier(0.22, 0.61, 0.36, 1)';
+      cover.style.transform = '';
+      syncEmbedsFor(MORPH + 80);
+      setTimeout(function () {
+        cover.style.transition = '';
+        cover.style.transformOrigin = '';
+      }, MORPH + 80);
+    });
+  }
+
+  /** on=true: 상세 화면을 상단의 작은 플레이어로. false: 원래대로 */
+  function morphTrack(on) {
+    var cover = view.querySelector('.track-cover');
+    var first = cover ? cover.getBoundingClientRect() : null;
+
+    document.body.classList.toggle('cmt-mode', !!on);
+    document.body.classList.add('track-morph');
+    // iframe 위치를 다 잡은 뒤에 풀어야 가장자리가 안 비친다
+    setTimeout(function () { document.body.classList.remove('track-morph'); }, MORPH + 90);
+
+    if (cover && first) flipCover(cover, first);
+    else syncEmbedsFor(MORPH + 80);
+  }
+
+  /** 상단 플레이어 아래 y 좌표 (댓글 창이 여기서부터 아래를 다 쓴다) */
+  function playerBottom() {
+    var row = view.querySelector('.track');
+    if (!row || !document.body.classList.contains('cmt-mode')) return null;
+    return row.getBoundingClientRect().bottom + 10;
+  }
+
   /* ---------- 하단 고정 플레이어 (목록·등록 화면) ---------- */
 
   var barEl = {
@@ -471,7 +530,12 @@
     }
     window.DB.countComments(track.id).then(showCount, function () { /* 못 세도 그만 */ });
     cmt.addEventListener('click', function () {
-      window.Comments.open(track, { onChange: showCount });
+      morphTrack(true);
+      window.Comments.open(track, {
+        onChange: showCount,
+        fillBelow: playerBottom,
+        onClose: function () { morphTrack(false); },
+      });
     });
     document.title = (track.title || '') + ' · ummjjutube';
     watchAnchor();
@@ -759,6 +823,9 @@
     teardown = [];
     if (anchorObserver) { anchorObserver.disconnect(); anchorObserver = null; }
 
+    window.Comments.closeAny();
+    document.body.classList.remove('cmt-mode', 'track-morph');
+
     var r = route();
 
     // 로그인하지 않았으면 어떤 화면도 열지 않는다(서버 쪽 RLS 로도 막혀 있다).
@@ -788,7 +855,7 @@
 
     watchAnchor();
     renderBar(window.Player.state());
-    window.scrollTo(0, 0);
+    view.scrollTop = 0;
   }
 
   window.addEventListener('hashchange', function () {

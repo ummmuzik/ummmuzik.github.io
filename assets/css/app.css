@@ -633,7 +633,7 @@ code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  * { transition: none !important; animation-duration: 0.001ms !important; }
 }
 
 /* ---------- 전역 재생기 iframe ---------- */
@@ -763,6 +763,77 @@ body:not([data-route="track"]) .embeds { opacity: 0; }
 /* 상세: 더 크게 */
 .track-controls .icon-btn { width: 48px; height: 48px; }
 .track-controls .icon-btn svg { width: 30px; height: 30px; }
+
+/* ---------- 댓글을 열면: 상세 화면이 상단의 작은 플레이어로 ---------- */
+
+/* 커버가 줄어들며 플레이어 자리로 들어간다. 줄어드는 동안의 움직임은
+   app.js 가 FLIP 으로 입히고, 끝 모양만 여기서 정한다.
+   남는 아래 영역은 댓글 창이 전부 차지한다(.sheet-back.is-filled). */
+body.cmt-mode .wrap { padding-top: 10px; padding-bottom: 10px; }
+
+body.cmt-mode .track {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0;
+}
+
+body.cmt-mode .track > * { width: auto; }
+
+body.cmt-mode .track-cover {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+body.cmt-mode .track-cover.is-empty::before { font-size: 16px; }
+
+body.cmt-mode .track-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.cmt-mode .track-texts { gap: 1px; }
+
+body.cmt-mode .track-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.cmt-mode .track-artist { font-size: 12px; }
+
+/* 재생 바·시간·이전/다음·댓글 버튼·오류줄은 하단 플레이어에도 없는 것들 */
+body.cmt-mode .track-seek,
+body.cmt-mode .track-status,
+body.cmt-mode .track-out,
+body.cmt-mode .track-cmt,
+body.cmt-mode #t-prev,
+body.cmt-mode #t-next { display: none; }
+
+/* 재생/일시정지는 목록 페이지 하단 플레이어와 같은 크기 */
+body.cmt-mode .track-controls { flex: none; gap: 0; }
+body.cmt-mode .track-controls .play-btn { width: 46px; height: 46px; }
+body.cmt-mode .track-controls .play-btn svg { width: 32px; height: 32px; }
+
+/* 줄어드는 동안에는 재생기 iframe 을 감춘다. 커버는 매끄럽게 줄어드는데
+   iframe 은 프레임마다 좌표를 다시 받으므로 한 칸씩 늦어 가장자리가
+   비쳐 보인다. (커버 뒤라 소리는 그대로 난다) */
+body.track-morph .embeds { opacity: 0; }
+
+/* 제목·재생 버튼은 자리가 확 바뀌므로 비쳐 들어오게 한다 */
+@keyframes morph-in { from { opacity: 0; } }
+
+body.track-morph .track-meta,
+body.track-morph .track-controls { animation: morph-in 260ms ease 80ms both; }
 .track-controls .play-btn { width: 56px; height: 56px; }
 .track-controls .play-btn svg { width: 40px; height: 40px; }
 
@@ -1002,6 +1073,27 @@ select.input {
   background: #fff;
   border-radius: 18px 18px 0 0;
   overflow: hidden;
+}
+
+/* 아래에서 올라오고, 닫을 때 다시 내려간다 */
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes back-in { from { opacity: 0; } }
+@keyframes back-out { to { opacity: 0; } }
+
+.sheet-back { animation: back-in 240ms ease both; }
+.sheet { animation: sheet-up 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
+.sheet-back.is-closing { animation: back-out 280ms ease both; }
+.sheet-back.is-closing .sheet { animation: sheet-down 300ms cubic-bezier(0.4, 0, 1, 1) both; }
+
+/* 상세 화면에서 열면 상단 플레이어 아래를 전부 차지한다.
+   (top 은 app.js 가 플레이어 아래 좌표로 잡아 준다) */
+.sheet-back.is-filled { background: transparent; }
+
+.sheet-back.is-filled .sheet {
+  height: 100%;
+  max-height: none;
 }
 
 .sheet-head {
