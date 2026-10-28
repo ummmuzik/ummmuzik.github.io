@@ -137,7 +137,12 @@
   async function updateComment(id, body) {
     var res = await getClient().from('comments').update({ body: body }).eq('id', id).select();
     if (res.error) throw res.error;
-    if (!res.data || !res.data.length) throw new Error('내가 쓴 댓글만 고칠 수 있습니다.');
+    if (!res.data || !res.data.length) {
+      // 남의 댓글이거나, 프로젝트에 update 정책이 없을 때 (0건 수정)
+      throw new Error('내가 쓴 댓글만 고칠 수 있습니다.\n' +
+        '내 댓글이 맞다면 Supabase SQL Editor 에서 supabase/schema.sql 을 한 번 더 실행해 주세요 ' +
+        '(댓글 수정 정책이 빠져 있습니다).');
+    }
     return res.data[0];
   }
 

@@ -191,12 +191,19 @@
       if (!body || li.querySelector('.cmt-edit')) return;
 
       var box = el('form', 'cmt-edit');
-      var field = document.createElement('input');
-      field.type = 'text';
-      field.className = 'input flat-input';
+      var field = document.createElement('textarea');
+      field.className = 'input flat-input cmt-edit-field';
+      field.rows = 1;
       field.maxLength = 1000;
       field.value = c.body || '';
       field.setAttribute('aria-label', '댓글 수정');
+
+      // 여기서도 엔터는 줄 바꿈. 저장은 저장 버튼으로만.
+      function growField() {
+        field.style.height = 'auto';
+        field.style.height = Math.max(40, Math.min(field.scrollHeight, 160)) + 'px';
+      }
+      field.addEventListener('input', growField);
 
       var save = el('button', 'btn btn-ink cmt-save', '저장');
       save.type = 'submit';
@@ -207,6 +214,7 @@
       box.appendChild(save);
       box.appendChild(cancel);
       body.replaceWith(box);
+      growField();
       field.focus();
       field.setSelectionRange(field.value.length, field.value.length);
 
@@ -328,8 +336,18 @@
     replyCancel.addEventListener('click', function () { setReply(null); });
 
     // 글자가 있을 때만 보낼 수 있다(비었으면 아이콘이 회색)
+    /* 엔터는 줄 바꿈이고, 올리는 건 종이비행기 버튼으로만 한다.
+       (textarea 라 엔터로 폼이 보내지지 않는다) */
+    function grow() {
+      input.style.height = 'auto';
+      var h = Math.min(input.scrollHeight, 124);
+      input.style.height = Math.max(46, h) + 'px';
+      input.classList.toggle('is-multi', h > 50);
+    }
+
     function syncSend() {
       send.disabled = !input.value.trim();
+      grow();
     }
     input.addEventListener('input', syncSend);
     syncSend();

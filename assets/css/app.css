@@ -1245,19 +1245,27 @@ select.input {
 /* 보내기 아이콘은 입력칸 안쪽에 */
 .cmt-row { position: relative; }
 
-/* 완전히 둥근 알약 */
+/* 완전히 둥근 알약. 엔터로 줄을 늘릴 수 있어 높이는 JS 가 맞춘다. */
 .cmt-input {
   width: 100%;
-  border-radius: 999px;
-  padding-left: 18px;
-  padding-right: 48px;
+  height: 46px;
+  min-height: 46px;
+  max-height: 124px;
+  border-radius: 999px;      /* 한 줄일 때는 완전한 알약 */
+  padding: 12px 48px 12px 18px;
+  font: inherit;
+  line-height: 22px;
+  resize: none;
+  overflow-y: auto;
 }
+
+/* 두 줄 이상이면 알약 대신 둥근 네모 (글자가 곡선에 물리지 않게) */
+.cmt-input.is-multi { border-radius: 20px; }
 
 .cmt-send {
   position: absolute;
   right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 5px;        /* 줄이 늘어나도 아래쪽에 붙어 있게 */
   display: grid;
   place-items: center;
   width: 36px;
@@ -1297,8 +1305,22 @@ body.sheet-open .wrap { overflow: hidden; }
 
 .cmt-menu { position: fixed; z-index: 90; min-width: 112px; }
 
-.cmt-edit { display: flex; gap: 6px; align-items: center; }
-.cmt-edit .flat-input { flex: 1; min-width: 0; height: 38px; font-size: 14px; }
+.cmt-edit { display: flex; gap: 6px; align-items: flex-end; }
+
+/* 수정칸도 엔터로 줄을 늘릴 수 있다(높이는 JS 가 맞춘다) */
+.cmt-edit-field {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  resize: none;
+  overflow-y: auto;
+}
 
 .cmt-save {
   flex: none;
