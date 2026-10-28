@@ -106,6 +106,8 @@
 
   window.addEventListener('resize', syncEmbeds);
   window.addEventListener('scroll', syncEmbeds, { passive: true });
+  // 문서가 아니라 본문 영역이 스크롤되므로 거기서도 위치를 다시 잡는다.
+  view.addEventListener('scroll', syncEmbeds, { passive: true });
 
   /* ---------- 하단 고정 플레이어 (목록·등록 화면) ---------- */
 

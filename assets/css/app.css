@@ -33,10 +33,16 @@ a, button, input, select, textarea, [role="button"] {
 /* display 를 지정한 요소에도 hidden 속성이 통하도록 */
 [hidden] { display: none !important; }
 
+/* 화면 안에 다 들어오면 아무것도 스크롤되지 않는다.
+   넘칠 때는 문서가 아니라 본문(.wrap)만 스크롤되고 상단바는 제자리에 있는다. */
+html { height: 100%; }
+
 body {
   margin: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -168,7 +174,11 @@ code {
   max-width: 1180px;
   margin: 0 auto;
   padding: 22px 30px 40px;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;          /* flex 자식이라 이게 없으면 줄어들지 않아 넘친다 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
 }
@@ -1108,7 +1118,7 @@ select.input {
 .cmt-send:disabled { cursor: default; }
 
 /* 창이 열려 있는 동안 뒤 화면은 스크롤되지 않게 */
-body.sheet-open { overflow: hidden; }
+body.sheet-open .wrap { overflow: hidden; }
 
 /* 댓글 한 줄의 ⋮ 와 수정 */
 
