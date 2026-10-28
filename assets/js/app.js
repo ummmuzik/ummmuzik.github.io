@@ -718,7 +718,7 @@
         say('bad', err && err.message ? err.message : '계정을 만들지 못했습니다.');
       } finally {
         submit.disabled = false;
-        submit.textContent = 'create';
+        submit.textContent = 'CREATE';
       }
     });
 

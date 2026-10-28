@@ -25,6 +25,11 @@
 
 * { box-sizing: border-box; }
 
+/* 모바일에서 누를 때 생기는 회색 사각형 제거 */
+a, button, input, select, textarea, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* display 를 지정한 요소에도 hidden 속성이 통하도록 */
 [hidden] { display: none !important; }
 
@@ -860,9 +865,9 @@ body[data-route="login"] .wrap { padding-left: 0; padding-right: 0; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 11px 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 0;
   background: var(--bg-soft);
 }
 
@@ -874,7 +879,7 @@ body[data-route="login"] .wrap { padding-left: 0; padding-right: 0; }
 .role-tag {
   flex: none;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: 0;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--fg-dim);
@@ -882,6 +887,8 @@ body[data-route="login"] .wrap { padding-left: 0; padding-right: 0; }
 }
 
 .role-tag.is-admin { color: var(--on-accent); background: var(--accent); }
+
+select.flat-input { padding-right: 36px; }
 
 select.input {
   appearance: none;

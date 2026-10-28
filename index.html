@@ -6,16 +6,16 @@
 <title>ummjjutube</title>
 <meta name="description" content="유튜브·사운드클라우드 링크로 모아 듣는 개인 음악 목록">
 <link rel="icon" href="./favicon.ico" sizes="32x32">
-<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=27">
-<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=27">
-<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=27">
-<link rel="manifest" href="./manifest.webmanifest?v=27">
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png?v=28">
+<link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png?v=28">
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png?v=28">
+<link rel="manifest" href="./manifest.webmanifest?v=28">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ummjjutube">
-<link rel="stylesheet" href="./assets/css/app.css?v=27">
+<link rel="stylesheet" href="./assets/css/app.css?v=28">
 </head>
 <body data-route="list">
 
@@ -181,29 +181,18 @@
 
   <section class="admin">
     <h2 class="sec-title">new account</h2>
-    <form id="user-form" class="form">
-      <div class="field">
-        <label for="u-id">id</label>
-        <input id="u-id" class="input" type="text" autocapitalize="off" spellcheck="false" placeholder="영문 소문자·숫자·_.- (3~30자)" required>
-      </div>
-      <div class="field">
-        <label for="u-pw">password</label>
-        <input id="u-pw" class="input" type="text" autocomplete="new-password" placeholder="6자 이상" required>
-      </div>
-      <div class="field">
-        <label for="u-nick">nickname</label>
-        <input id="u-nick" class="input" type="text" maxlength="40" required>
-      </div>
-      <div class="field">
-        <label for="u-role">role</label>
-        <select id="u-role" class="input">
-          <option value="member">일반</option>
-          <option value="admin">관리자</option>
-        </select>
-      </div>
-      <div class="actions">
-        <button id="u-submit" class="btn btn-primary" type="submit">create</button>
-      </div>
+    <form id="user-form" class="form login-form">
+      <input id="u-id" class="input flat-input" type="text" placeholder="ID" aria-label="아이디"
+             autocapitalize="off" spellcheck="false" required>
+      <input id="u-pw" class="input flat-input" type="text" placeholder="Password" aria-label="비밀번호"
+             autocomplete="new-password" required>
+      <input id="u-nick" class="input flat-input" type="text" placeholder="Nickname" aria-label="닉네임"
+             maxlength="40" required>
+      <select id="u-role" class="input flat-input" aria-label="역할">
+        <option value="member">일반 회원</option>
+        <option value="admin">관리자</option>
+      </select>
+      <button id="u-submit" class="btn btn-ink btn-block" type="submit">CREATE</button>
     </form>
 
     <h2 class="sec-title">members</h2>
@@ -258,14 +247,14 @@
 </template>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
-<script src="./assets/js/config.js?v=27"></script>
-<script src="./assets/js/sources.js?v=27"></script>
-<script src="./assets/js/db.js?v=27"></script>
-<script src="./assets/js/auth.js?v=27"></script>
-<script src="./assets/js/crop.js?v=27"></script>
-<script src="./assets/js/comments.js?v=27"></script>
-<script src="./assets/js/player.js?v=27"></script>
-<script src="./assets/js/add.js?v=27"></script>
-<script src="./assets/js/app.js?v=27"></script>
+<script src="./assets/js/config.js?v=28"></script>
+<script src="./assets/js/sources.js?v=28"></script>
+<script src="./assets/js/db.js?v=28"></script>
+<script src="./assets/js/auth.js?v=28"></script>
+<script src="./assets/js/crop.js?v=28"></script>
+<script src="./assets/js/comments.js?v=28"></script>
+<script src="./assets/js/player.js?v=28"></script>
+<script src="./assets/js/add.js?v=28"></script>
+<script src="./assets/js/app.js?v=28"></script>
 </body>
 </html>
