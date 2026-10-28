@@ -92,6 +92,51 @@
     layout();
     window.addEventListener('resize', layout);
 
+    /* ---------- 손잡이로 끌어내려 닫기 ---------- */
+
+    var sheet = back.querySelector('.sheet');
+    var grip = back.querySelector('.sheet-grip');
+    var drag = null;
+
+    // 다 올라오면 애니메이션을 떼어, 끄는 동안 transform 이 먹게 한다
+    var settle = setTimeout(function () { sheet.classList.add('is-settled'); }, 340);
+
+    grip.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      clearTimeout(settle);
+      sheet.classList.add('is-settled');
+      sheet.style.transition = 'none';
+      drag = { y: e.clientY, t: Date.now(), dy: 0 };
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* 그냥 진행 */ }
+    });
+
+    grip.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      drag.dy = Math.max(0, e.clientY - drag.y);
+      sheet.style.transform = 'translateY(' + drag.dy + 'px)';
+    });
+
+    function endDrag() {
+      if (!drag) return;
+      var dy = drag.dy;
+      var speed = dy / Math.max(1, Date.now() - drag.t);   // px/ms
+      drag = null;
+
+      // 많이 내렸거나(높이의 28%, 최대 140px) 빠르게 튕겼으면 닫는다
+      var far = dy > Math.min(140, sheet.getBoundingClientRect().height * 0.28);
+      if (far || (dy > 20 && speed > 0.5)) {
+        sheet.style.transition = '';
+        close();        // 닫는 모션이 지금 자리에서 이어진다
+        return;
+      }
+
+      sheet.style.transition = 'transform 200ms ease';
+      sheet.style.transform = '';
+    }
+
+    grip.addEventListener('pointerup', endDrag);
+    grip.addEventListener('pointercancel', endDrag);
+
     var closing = false;
 
     /** close(true) 면 내려가는 모션 없이 바로 치운다(화면을 떠날 때) */
@@ -99,6 +144,8 @@
       if (closing) return;
       closing = true;
       closeMenu();
+      clearTimeout(settle);
+      drag = null;
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', layout);
       if (closeOpen === close) closeOpen = null;
