@@ -1247,6 +1247,9 @@ select.input {
 
 /* 완전히 둥근 알약. 엔터로 줄을 늘릴 수 있어 높이는 JS 가 맞춘다. */
 .cmt-input {
+  /* inline 이면 글꼴 베이스라인 때문에 아래에 몇 px 이 더 붙어, 그만큼
+     비행기 버튼이 아래로 밀린다. block 으로 두면 칸 높이와 딱 맞는다. */
+  display: block;
   width: 100%;
   height: 46px;
   min-height: 46px;
@@ -1262,10 +1265,12 @@ select.input {
 /* 두 줄 이상이면 알약 대신 둥근 네모 (글자가 곡선에 물리지 않게) */
 .cmt-input.is-multi { border-radius: 20px; }
 
+/* 한 줄일 때는 한가운데(46 - 36 = 10, 위아래 5px 씩).
+   줄이 늘어나도 따라 내려가지 않고 이 자리에 머문다. */
 .cmt-send {
   position: absolute;
   right: 5px;
-  bottom: 5px;        /* 줄이 늘어나도 아래쪽에 붙어 있게 */
+  bottom: 5px;
   display: grid;
   place-items: center;
   width: 36px;
