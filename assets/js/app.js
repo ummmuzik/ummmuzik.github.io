@@ -90,7 +90,11 @@
     embeds.style.top = r.top + 'px';
     embeds.style.width = r.width + 'px';
     embeds.style.height = r.height + 'px';
-    embeds.style.borderRadius = getComputedStyle(anchor).borderRadius;
+    // 커버를 확대(transform)하는 동안에는 모서리도 같이 커진다. 그만큼
+    // 곱해 주지 않으면 iframe 의 각진 모서리가 커버 밖으로 비어져 나온다.
+    var scale = anchor.offsetWidth ? r.width / anchor.offsetWidth : 1;
+    var radius = parseFloat(getComputedStyle(anchor).borderRadius) || 0;
+    embeds.style.borderRadius = (radius * scale) + 'px';
   }
 
   function watchAnchor() {

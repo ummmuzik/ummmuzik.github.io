@@ -862,6 +862,9 @@ body.cmt-mode .track-controls { flex: none; gap: 0; }
 body.cmt-mode .track-controls .play-btn { width: 46px; height: 46px; }
 body.cmt-mode .track-controls .play-btn svg { width: 32px; height: 32px; }
 
+/* 끌어내리는 동안에도 감춘다(커버가 커지는 중에는 뒤가 비칠 수 있다) */
+body.cmt-drag .embeds { opacity: 0; }
+
 /* 줄어드는 동안에는 재생기 iframe 을 감춘다. 커버는 매끄럽게 줄어드는데
    iframe 은 프레임마다 좌표를 다시 받으므로 한 칸씩 늦어 가장자리가
    비쳐 보인다. (커버 뒤라 소리는 그대로 난다) */
