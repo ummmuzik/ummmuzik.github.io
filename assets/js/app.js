@@ -118,6 +118,43 @@
     })();
   }
 
+  /* ---------- 긴 제목·아티스트 흐르기 ---------- */
+
+  /* 칸(.flow)보다 글자(.flow-in)가 길면 넘치는 만큼 좌우로 천천히 흐른다.
+     글자나 칸 너비가 바뀔 때마다 다시 재야 한다. */
+  function flowText(inner) {
+    var box = inner.parentNode;
+    if (!box) return;
+    inner.classList.remove('is-flowing');
+    inner.style.removeProperty('--flow-dist');
+    inner.style.removeProperty('--flow-time');
+
+    var over = Math.round(inner.scrollWidth - box.clientWidth);
+    if (over <= 1) return;
+
+    inner.style.setProperty('--flow-dist', -over + 'px');
+    // 초당 55px 쯤 흐른다. 한 바퀴의 24% 는 양 끝에서 쉬는 시간이므로
+    // (text-flow 키프레임) 그만큼을 더해 전체 길이를 잡는다.
+    inner.style.setProperty('--flow-time', (over / 55 * 2 / 0.76).toFixed(1) + 's');
+    inner.classList.add('is-flowing');
+  }
+
+  var flowPending = false;
+
+  /** 화면에 있는 흐를 글자들을 다시 잰다 (레이아웃이 끝난 다음 프레임에) */
+  function flowAll() {
+    if (flowPending) return;
+    flowPending = true;
+    requestAnimationFrame(function () {
+      flowPending = false;
+      Array.prototype.forEach.call(document.querySelectorAll('.flow-in'), flowText);
+    });
+  }
+
+  window.addEventListener('resize', flowAll);
+  // 글꼴이 늦게 와서 글자 너비가 바뀌면 다시 잰다
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(flowAll);
+
   /* ---------- 상세 화면 ↔ 상단 플레이어 ---------- */
 
   var MORPH = 340;   // ms
@@ -147,18 +184,38 @@
     });
   }
 
-  /** on=true: 상세 화면을 상단의 작은 플레이어로. false: 원래대로 */
-  function morphTrack(on) {
-    var cover = view.querySelector('.track-cover');
-    var first = cover ? cover.getBoundingClientRect() : null;
+  var FADE = 130;    // ms, 커버 말고 다른 것들이 사라지는 시간
+  var morphing = false;
 
-    document.body.classList.toggle('cmt-mode', !!on);
-    document.body.classList.add('track-morph');
-    // iframe 위치를 다 잡은 뒤에 풀어야 가장자리가 안 비친다
-    setTimeout(function () { document.body.classList.remove('track-morph'); }, MORPH + 90);
+  /**
+   * on=true: 상세 화면을 상단의 작은 플레이어로. false: 원래대로.
+   *   1) 커버 말고 다른 것들이 먼저 사라지고 (FADE)
+   *   2) 커버가 새 자리로 흐르는 동안 (MORPH)
+   *   3) 거의 도착했을 때 바뀐 쪽 글자·버튼이 빠르게 나타난다.
+   * done 은 2) 가 시작될 때, 즉 새 레이아웃이 잡힌 직후에 부른다.
+   */
+  function morphTrack(on, done) {
+    if (morphing) return;
+    morphing = true;
+    document.body.classList.add('morph-out');
 
-    if (cover && first) flipCover(cover, first);
-    else syncEmbedsFor(MORPH + 80);
+    setTimeout(function () {
+      morphing = false;
+      var cover = view.querySelector('.track-cover');
+      var first = cover ? cover.getBoundingClientRect() : null;
+
+      document.body.classList.remove('morph-out');
+      document.body.classList.toggle('cmt-mode', !!on);
+      document.body.classList.add('track-morph');
+      // iframe 위치를 다 잡은 뒤에 풀어야 가장자리가 안 비친다
+      setTimeout(function () { document.body.classList.remove('track-morph'); }, MORPH + 90);
+
+      if (cover && first) flipCover(cover, first);
+      else syncEmbedsFor(MORPH + 80);
+
+      flowAll();   // 제목 칸 너비가 달라졌다
+      if (typeof done === 'function') done();
+    }, FADE);
   }
 
   /** 상단 플레이어 아래 y 좌표 (댓글 창이 여기서부터 아래를 다 쓴다) */
@@ -174,6 +231,7 @@
     media: document.getElementById('p-media'),
     cover: document.getElementById('p-cover'),
     title: document.getElementById('p-title'),
+    titleText: document.getElementById('p-title-t'),
     artist: document.getElementById('p-artist'),
     status: document.getElementById('p-status'),
     toggle: document.getElementById('p-toggle'),
@@ -213,11 +271,12 @@
 
     if (s.track.id !== barTrackId) {
       barTrackId = s.track.id;
-      barEl.title.textContent = s.track.title || '제목 없음';
+      barEl.titleText.textContent = s.track.title || '제목 없음';
       barEl.title.href = trackHref(s.track);
       barEl.media.href = trackHref(s.track);
       barEl.artist.textContent = s.track.artist || '아티스트 미상';
       paintCover(barEl.media, barEl.cover, s.track);
+      flowAll();
     }
 
     barEl.status.textContent = s.error || '';
@@ -530,11 +589,13 @@
     }
     window.DB.countComments(track.id).then(showCount, function () { /* 못 세도 그만 */ });
     cmt.addEventListener('click', function () {
-      morphTrack(true);
-      window.Comments.open(track, {
-        onChange: showCount,
-        fillBelow: playerBottom,
-        onClose: function () { morphTrack(false); },
+      // 창은 플레이어 모양이 잡힌 뒤에 올린다(그래야 올라올 자리를 안다)
+      morphTrack(true, function () {
+        window.Comments.open(track, {
+          onChange: showCount,
+          fillBelow: playerBottom,
+          onClose: function () { morphTrack(false); },
+        });
       });
     });
     document.title = (track.title || '') + ' · ummjjutube';
@@ -855,6 +916,7 @@
 
     watchAnchor();
     renderBar(window.Player.state());
+    flowAll();
     view.scrollTop = 0;
   }
 
