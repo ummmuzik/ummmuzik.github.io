@@ -178,7 +178,13 @@ code {
   min-height: 0;          /* flex 자식이라 이게 없으면 줄어들지 않아 넘친다 */
   overflow-y: auto;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  /* 전역 재생기 iframe(.embeds, z-index 40) 보다 위에 그려져야 한다.
+     스크롤 영역은 브라우저에 따라 쌓임 순서를 새로 만들기 때문에,
+     여기서 못을 박아 두지 않으면 커버 자리에 영상이 비쳐 보인다.
+     (-webkit-overflow-scrolling: touch 가 iOS 에서 그랬다. 요즘 iOS 는
+      overflow:auto 만으로도 관성 스크롤이 되니 쓰지 않는다.) */
+  position: relative;
+  z-index: 41;
   display: flex;
   flex-direction: column;
 }
