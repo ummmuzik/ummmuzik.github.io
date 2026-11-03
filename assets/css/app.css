@@ -434,15 +434,20 @@ code {
 }
 
 /* 등록한 사람 */
-/* 제목·아티스트 묶음. 오른쪽 끝 말풍선 자리를 비워 둔다. */
 .card-text {
   display: grid;
   gap: 2px;
   min-width: 0;
-  padding-right: 30px;
 }
 
-/* 말풍선과 그 아래 개수. 글자 묶음 오른쪽 끝에 세로로 붙는다. */
+/* 말풍선이 놓이는 두 줄만 오른쪽을 비워 둔다(닉네임 줄은 끝까지 쓴다) */
+.card-title,
+.card-artist { padding-right: 30px; }
+
+/* 말풍선과 그 아래 개수. 제목·아티스트 줄 오른쪽 끝에 세로로 붙는다.
+   커버가 정사각(가로 = 세로)이라 카드 너비(100cqw)가 곧 커버 높이다.
+   그만큼 내려오면 제목 줄 높이에 맞는다. cqw 를 모르는 브라우저에서는
+   아래 기본값(맨 아래)으로 둔다. */
 .card-cmt {
   position: absolute;
   /* 아이콘은 34px 버튼 한가운데 20px 로 그려져 7px 안쪽에 보인다.
@@ -459,6 +464,15 @@ code {
   color: var(--fg);
   font: inherit;
   cursor: pointer;
+}
+
+@supports (top: 1cqw) {
+  .card { container-type: inline-size; }
+
+  .card-cmt {
+    top: calc(100cqw + 6px);   /* 커버 아래 = 제목 줄 */
+    bottom: auto;
+  }
 }
 
 .card-cmt svg { width: 20px; height: 20px; }
