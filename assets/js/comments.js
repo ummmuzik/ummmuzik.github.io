@@ -53,9 +53,48 @@
 
   var closeOpen = null;     // 열려 있는 창을 닫는 함수 (화면을 떠날 때 쓴다)
 
+  /* 앱을 잠깐 내려놨다 돌아오면 화면이 다시 그려질 수 있다. 그때 창이 열려
+     있었는지와 쓰다 만 글을 되살리려고 여기에 적어 둔다. */
+  var KEY = 'ummjjutube:comments';
+  var FRESH = 12 * 60 * 60 * 1000;
+
+  function readMemo() {
+    try {
+      var v = JSON.parse(window.localStorage.getItem(KEY) || 'null');
+      if (!v || !v.id || Date.now() - (v.at || 0) > FRESH) return null;
+      return v;
+    } catch (e) {
+      return null;     // 비공개 모드 등
+    }
+  }
+
+  function writeMemo(v) {
+    try {
+      v.at = Date.now();
+      window.localStorage.setItem(KEY, JSON.stringify(v));
+    } catch (e) { /* 못 적어도 그만 */ }
+  }
+
+  /** 이 곡의 창이 열린 채로 끊겼는가 (화면을 다시 그릴 때 물어본다) */
+  function wasOpen(trackId, from) {
+    var v = readMemo();
+    return !!(v && v.open && String(v.id) === String(trackId) && v.from === from);
+  }
+
   function open(track, opts) {
     opts = opts || {};
     if (closeOpen) closeOpen(true);
+
+    var kept = readMemo();
+    if (!kept || String(kept.id) !== String(track.id)) kept = null;
+    var memo = {
+      id: track.id,
+      from: opts.from || 'track',
+      open: true,
+      draft: (kept && kept.draft) || '',
+      reply: (kept && kept.reply) || null,
+    };
+    writeMemo(memo);
 
     var node = document.getElementById('tpl-comments').content.cloneNode(true);
     var back = node.querySelector('.sheet-back');
@@ -162,6 +201,8 @@
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', layout);
       if (closeOpen === close) closeOpen = null;
+      memo.open = false;      // 다시 그려도 저절로 열리지는 않게 (글은 남긴다)
+      writeMemo(memo);
 
       // 창이 내려가는 동안 상세 화면은 제자리로 커진다.
       if (typeof opts.onClose === 'function') opts.onClose(!!dragged);
@@ -387,6 +428,8 @@
 
     function setReply(to) {
       replyTo = to;
+      memo.reply = to;
+      writeMemo(memo);
       replyBar.hidden = !to;
       if (to) {
         replyWho.textContent = (to.nickname || '') + '에게 답글';
@@ -409,8 +452,19 @@
       send.disabled = !input.value.trim();
       grow();
     }
-    input.addEventListener('input', syncSend);
+
+    var memoTimer = null;
+    input.addEventListener('input', function () {
+      syncSend();
+      memo.draft = input.value;
+      clearTimeout(memoTimer);
+      memoTimer = setTimeout(function () { writeMemo(memo); }, 300);
+    });
+
+    // 쓰다 만 글과 답글 대상을 되살린다
+    input.value = memo.draft || '';
     syncSend();
+    if (memo.reply) setReply(memo.reply);
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -425,6 +479,8 @@
           body: body,
         });
         input.value = '';
+        memo.draft = '';
+        writeMemo(memo);
         setReply(null);
         await load(true);
       } catch (err) {
@@ -443,5 +499,5 @@
     if (closeOpen) closeOpen(true);
   }
 
-  window.Comments = { open: open, closeAny: closeAny };
+  window.Comments = { open: open, closeAny: closeAny, wasOpen: wasOpen };
 })();

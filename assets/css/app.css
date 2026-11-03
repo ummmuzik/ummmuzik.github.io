@@ -345,6 +345,8 @@ code {
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
 }
 
+.card { position: relative; }
+
 .card-btn {
   display: grid;
   gap: 4px;
@@ -432,6 +434,42 @@ code {
 }
 
 /* 등록한 사람 */
+/* 제목·아티스트 묶음. 오른쪽 끝 말풍선 자리를 비워 둔다. */
+.card-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 30px;
+}
+
+/* 말풍선과 그 아래 개수. 글자 묶음 오른쪽 끝에 세로로 붙는다. */
+.card-cmt {
+  position: absolute;
+  /* 아이콘은 34px 버튼 한가운데 20px 로 그려져 7px 안쪽에 보인다.
+     그만큼 바깥으로 당겨 보이는 끝을 카드 끝에 맞춘다(상단바와 같은 방식). */
+  right: -7px;
+  bottom: -2px;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  width: 34px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.card-cmt svg { width: 20px; height: 20px; }
+
+.card-cmt-n {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--fg-dim);
+}
+
 .card-owner {
   margin-top: 2px;
   font-size: 11.5px;

@@ -125,6 +125,23 @@
   }
 
   /** 댓글 개수만 센다(상세 화면의 숫자) */
+  /** 여러 곡의 댓글 수를 한 번에 센다. { 곡id: 개수 } 를 돌려준다. */
+  async function countCommentsFor(trackIds) {
+    var ids = (trackIds || []).map(String);
+    if (!ids.length) return {};
+
+    var res = await getClient().from('comments').select('track_id').in('track_id', ids);
+    if (res.error) throw res.error;
+
+    var by = {};
+    ids.forEach(function (id) { by[id] = 0; });
+    (res.data || []).forEach(function (c) {
+      var k = String(c.track_id);
+      by[k] = (by[k] || 0) + 1;
+    });
+    return by;
+  }
+
   async function countComments(trackId) {
     var res = await getClient()
       .from('comments')
@@ -197,6 +214,7 @@
     listTracks: listTracks,
     listComments: listComments,
     countComments: countComments,
+    countCommentsFor: countCommentsFor,
     addComment: addComment,
     updateComment: updateComment,
     deleteComment: deleteComment,

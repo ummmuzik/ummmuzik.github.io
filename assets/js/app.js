@@ -289,6 +289,39 @@
     return row.getBoundingClientRect().bottom + 10;
   }
 
+  /* ---------- 댓글 창 ---------- */
+
+  var BUBBLE_SVG =
+    '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M20.5 11.3c0 3.7-3.8 6.7-8.5 6.7-.86 0-1.69-.1-2.47-.29L4.5 20l1.2-3.4C4.2 15.3 3.5 13.4 3.5 11.3 ' +
+    '3.5 7.6 7.3 4.6 12 4.6s8.5 3 8.5 6.7z"/></svg>';
+
+  /**
+   * 댓글 창을 연다.
+   *   from 'track' — 상세 화면: 플레이어로 접었다가 창이 그 아래를 채운다.
+   *   from 'list'  — 목록 화면: 평범한 하단 시트.
+   */
+  function openComments(track, from, onCount) {
+    var opts = {
+      from: from,
+      onChange: function (n) { if (typeof onCount === 'function') onCount(n); },
+    };
+
+    if (from !== 'track') {
+      window.Comments.open(track, opts);
+      return;
+    }
+
+    morphTrack(true, function () {
+      opts.fillBelow = playerBottom;
+      opts.onDrag = dragMorph;
+      opts.onDragEnd = dragMorphEnd;
+      opts.onClose = function (dragged) { morphTrack(false, null, dragged); };
+      window.Comments.open(track, opts);
+    });
+  }
+
   /* ---------- 하단 고정 플레이어 (목록·등록 화면) ---------- */
 
   var barEl = {
@@ -534,15 +567,33 @@
     cover.appendChild(play);
 
     a.appendChild(cover);
-    a.appendChild(el('span', 'card-title', track.title || '제목 없음'));
-    a.appendChild(el('span', 'card-artist', track.artist || '아티스트 미상'));
-    if (track.owner_nickname) a.appendChild(el('span', 'card-owner', track.owner_nickname));
+
+    var texts = el('span', 'card-text');
+    texts.appendChild(el('span', 'card-title', track.title || '제목 없음'));
+    texts.appendChild(el('span', 'card-artist', track.artist || '아티스트 미상'));
+    if (track.owner_nickname) texts.appendChild(el('span', 'card-owner', track.owner_nickname));
+    a.appendChild(texts);
     li.appendChild(a);
 
     // 링크를 따라가기 전에 재생을 시작한다(클릭 제스처를 잃지 않도록).
     a.addEventListener('click', function () {
       window.Player.playNow(track, all);
     });
+
+    // 말풍선 + 개수. 누르면 재생하지 않고 댓글 창만 연다.
+    var cmt = el('button', 'card-cmt');
+    cmt.type = 'button';
+    cmt.setAttribute('aria-label', '댓글');
+    cmt.innerHTML = BUBBLE_SVG;
+    var n = el('span', 'card-cmt-n', '0');
+    cmt.appendChild(n);
+    cmt.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openComments(track, 'list', function (count) { n.textContent = String(count); });
+    });
+    li.appendChild(cmt);
+    li._setCount = function (count) { n.textContent = String(count || 0); };
 
     return li;
   }
@@ -601,6 +652,22 @@
     mark(window.Player.state());
     var sub = window.Player.subscribe(mark);
     teardown.push(function () { window.Player.unsubscribe(sub); });
+
+    // 댓글 수는 한 번에 세어 와서 카드에 꽂는다(없으면 0 그대로).
+    if (tracks.length) {
+      window.DB.countCommentsFor(tracks.map(function (t) { return t.id; })).then(function (by) {
+        Array.prototype.forEach.call(grid.children, function (li) {
+          if (li._setCount) li._setCount(by[li.dataset.id] || 0);
+        });
+      }, function () { /* 못 세도 0 으로 둔다 */ });
+    }
+
+    // 앱이 쉬었다 돌아오며 새로 그려졌다면, 열려 있던 창을 다시 띄운다
+    var back = tracks.filter(function (t) { return window.Comments.wasOpen(t.id, 'list'); })[0];
+    if (back) {
+      var li = grid.querySelector('li[data-id="' + String(back.id).replace(/"/g, '\\"') + '"]');
+      openComments(back, 'list', function (n) { if (li && li._setCount) li._setCount(n); });
+    }
   }
 
   /* ---------- 상세 화면 ---------- */
@@ -652,18 +719,13 @@
       cmtN.hidden = !n;
     }
     window.DB.countComments(track.id).then(showCount, function () { /* 못 세도 그만 */ });
-    cmt.addEventListener('click', function () {
-      // 창은 플레이어 모양이 잡힌 뒤에 올린다(그래야 올라올 자리를 안다)
-      morphTrack(true, function () {
-        window.Comments.open(track, {
-          onChange: showCount,
-          fillBelow: playerBottom,
-          onDrag: dragMorph,
-          onDragEnd: dragMorphEnd,
-          onClose: function (dragged) { morphTrack(false, null, dragged); },
-        });
-      });
-    });
+    // 창은 플레이어 모양이 잡힌 뒤에 올린다(그래야 올라올 자리를 안다)
+    cmt.addEventListener('click', function () { openComments(track, 'track', showCount); });
+
+    // 앱이 쉬었다 돌아오며 새로 그려졌다면, 열려 있던 창을 다시 띄운다
+    if (window.Comments.wasOpen(track.id, 'track')) {
+      openComments(track, 'track', showCount);
+    }
     document.title = (track.title || '') + ' · ummjjutube';
     watchAnchor();
 
@@ -1000,12 +1062,25 @@
     if (s.track) watchAnchor();
   });
 
+  function keyOf(s) {
+    return [s.signedIn ? 1 : 0, (s.user && s.user.id) || '', s.nickname || '', s.isAdmin ? 1 : 0].join('|');
+  }
+
   (async function boot() {
     // 로그인 상태를 먼저 읽어야 상단바와 화면 접근 제한을 바로 그릴 수 있다.
     try {
       await window.Auth.init();
     } catch (e) { /* 설정 전이면 로그아웃 상태로 본다 */ }
-    window.Auth.subscribe(function () { render(); });
+    // 앱이 쉬었다 돌아오면 Supabase 가 토큰을 새로 받고 이 콜백을 부른다.
+    // 그때마다 화면을 다시 그리면 열어 둔 댓글 창이 닫힌다. 로그인한 사람이
+    // 실제로 바뀐 경우에만 다시 그린다.
+    var authKey = keyOf(window.Auth.state());
+    window.Auth.subscribe(function (s) {
+      var next = keyOf(s);
+      if (next === authKey) return;
+      authKey = next;
+      render();
+    });
     render();
   })();
 })();
