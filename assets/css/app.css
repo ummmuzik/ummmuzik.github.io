@@ -20,6 +20,8 @@
   --bad: #c62828;
   --warn: #c07c00;
   --bar-h: 76px;
+  /* 목록 카드의 아티스트 줄 높이. 댓글 개수도 같은 높이를 써서 나란히 맞춘다. */
+  --card-sub-line: 17px;
 }
 
 * { box-sizing: border-box; }
@@ -427,6 +429,9 @@ code {
 
 .card-artist {
   font-size: 12.5px;
+  /* 댓글 개수(.card-cmt-n)와 줄 높이를 맞춰 둔다. 아래가 같은 자리에
+     놓이므로, 높이가 같으면 글자의 가운데도 자동으로 맞는다. */
+  line-height: var(--card-sub-line);
   color: var(--fg-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -473,7 +478,7 @@ code {
 .card-cmt-n {
   font-size: 11px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: var(--card-sub-line);   /* 아티스트 줄과 같은 높이 */
   color: var(--fg-dim);
 }
 
